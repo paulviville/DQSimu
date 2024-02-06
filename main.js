@@ -1,9 +1,13 @@
-import Renderer from './CMapJS/Rendering/Renderer.js';
+
 import * as THREE from './CMapJS/Libs/three.module.js';
 import { OrbitControls } from './CMapJS/Libs/OrbitsControls.js';
 import { DualQuaternion } from './DualQuaternion.js';
 import DQHelper from './DQHelper.js';
 import { GUI } from './CMapJS/Libs/dat.gui.module.js';
+
+import CMap2 from './CMapJS/CMap/CMap2.js';
+import Renderer from './CMapJS/Rendering/Renderer.js';
+import {loadCMap2} from './CMapJS/IO/SurfaceFormats/CMap2IO.js';
 
 
 const scene = new THREE.Scene();
@@ -102,6 +106,9 @@ scene.add(new THREE.AxesHelper(100))
 
 
 
+
+
+
 const controlDQ = new DualQuaternion;
 const controlDQHelper = new DQHelper(controlDQ);
 // const controlDQHelper = new DQHelper();
@@ -109,10 +116,7 @@ scene.add(controlDQHelper)
 
 
 const dqsInit = [
-	DualQuaternion.setFromRotationTranslation(
-		new THREE.Quaternion(),
-		new THREE.Quaternion(1, 0, 0, 0)
-	),
+	
 	// DualQuaternion.setFromRotationTranslation(
 	// 	new THREE.Quaternion().setFromAxisAngle(worldZ, Math.PI / 2),
 	// 	new THREE.Quaternion(1, 0, 0, 0)
@@ -133,7 +137,10 @@ const dqsInit = [
 	// 	new THREE.Quaternion().setFromAxisAngle(worldY, -Math.PI / 2),
 	// 	new THREE.Quaternion(1, 0, 0, 0)
 	// ),
-
+	DualQuaternion.setFromRotationTranslation(
+		new THREE.Quaternion(),
+		new THREE.Quaternion(1, 0, 0, 0)
+	),
 	DualQuaternion.setFromRotationTranslation(
 		new THREE.Quaternion(),
 		new THREE.Quaternion(-1, 0, 0, 0)
@@ -155,8 +162,45 @@ const dqsInit = [
 		new THREE.Quaternion(0, 0, 1, 0)
 	),
 ];
+
 const dqsTarget = []
 const dqsTails = [];
+
+
+const octahedronOff = `OFF
+6 8 0
+ 0.0  0.0  1.0
+ 0.0  0.0 -1.0
+ 0.0 -1.0  0.0
+ 1.0  0.0  0.0
+ 0.0  1.0  0.0
+-1.0  0.0  0.0
+3 0 2 3
+3 0 3 4
+3 0 4 5
+3 0 5 2
+3 1 3 2
+3 1 4 3
+3 1 5 4
+3 1 2 5
+`;
+
+const map = loadCMap2('off', octahedronOff);
+const mapRenderer = new Renderer(map);
+mapRenderer.edges.create().addTo(scene);
+
+(function () {
+	const initPosDQ = map.addAttribute(map.vertex, "initDQ");
+	const position = map.getAttribute(map.vertex, "position");
+
+	map.foreach(map.vertex, vd => {
+		const vid = map.cell(map.vertex, vd);
+		const dq = DualQuaternion.setFromTranslation(position[vid]);
+		initPosDQ[vid] = dq.clone();
+	});
+	
+})()
+
 const nbTailDivs = 11;
 for(let i = 0; i < dqsInit.length; ++i) {
 	dqsTarget.push(new DualQuaternion);
@@ -218,6 +262,7 @@ const settings = {
 		controlDQHelper.update();
 
 		this.updateDQs();
+		this.updateMap();
 	},
 
 	updateDQs : function () {
@@ -230,9 +275,33 @@ const settings = {
 			}
 		}
 	},
+
+	updateMap : function () {
+		const position = map.getAttribute(map.vertex, "position");
+		const initPosDQ = map.getAttribute(map.vertex, "initDQ");
+
+		map.foreach(map.vertex, vd => {
+			const vid = map.cell(map.vertex, vd);
+			const dq = initPosDQ[vid].clone();
+
+			dq.premultiply(controlDQ);
+			position[vid].copy(dq.transform(new THREE.Vector3));
+		});
+
+		map.foreach(map.edge, ed => {
+			const vid0 = map.cell(map.vertex, ed);
+			const vid1 = map.cell(map.vertex, map.phi2[ed]);
+
+			console.log(position[vid0].distanceTo(position[vid1]));
+
+		});
+
+		mapRenderer.edges.update();
+	}
 }
 
 settings.updateDQ();
+settings.updateMap();
  
 const gui = new GUI({autoPlace: true, hideable: false});
 const DQFolder = gui.addFolder("dual quaternion");
@@ -247,68 +316,6 @@ translationFolder.add(settings.translation, "x", -1.0, 1.0).step(0.01).onChange(
 translationFolder.add(settings.translation, "y", -1.0, 1.0).step(0.01).onChange(settings.updateDQ.bind(settings)).listen();
 translationFolder.add(settings.translation, "z", -1.0, 1.0).step(0.01).onChange(settings.updateDQ.bind(settings)).listen();
 
-
-
-
-
-
-
-
-// const r0 = new THREE.Quaternion();
-const r0 = new THREE.Quaternion().setFromAxisAngle(worldY, Math.PI / 2);
-const t0 = new THREE.Quaternion(1, 0, 0, 0);
-// const dq0 = DualQuaternion.setFromRotationTranslation(r0, t0);
-const dq0 = DualQuaternion.setFromTranslationRotation(r0, t0);
-
-const r1 = new THREE.Quaternion()//.setFromAxisAngle(worldY, Math.PI / 2);
-const t1 = new THREE.Quaternion(1, 1, 1, 0);
-// const dq1 = DualQuaternion.setFromRotationTranslation(r1, t1);
-const dq1 = DualQuaternion.setFromTranslationRotation(r1, t1);
-
-const r2 = new THREE.Quaternion().setFromAxisAngle(worldX, Math.PI / 2);
-const t2 = new THREE.Quaternion(-1, 0, 0, 0);
-const dq2 = DualQuaternion.setFromRotationTranslation(r2, t2);
-
-const dq_0 = dq0.clone().invert();
-
-const dq01 = new DualQuaternion;
-dq01.multiplyDualQuaternions(dq1, dq_0);
-console.log(dq0, dq1)
-
-// dq01.multiplyDualQuaternions(dq01, dq01.clone().invert());
-
-const dq3 = dq2.clone().premultiply(dq01);
-
-// dq2.premultiply()
-
-// const dqHelper0 = new DQHelper(dq0);
-// const dqHelper01 = new DQHelper(dq01);
-// const dqHelper1 = new DQHelper(dq1);
-// const dqHelper2 = new DQHelper(dq2);
-// const dqHelper3 = new DQHelper(dq3);
-
-// scene.add(dqHelper0);
-// scene.add(dqHelper01);
-// scene.add(dqHelper1);
-// scene.add(dqHelper2);
-// scene.add(dqHelper3);
-
-// const dqh = [];
-// const nbDivs = 10;
-// const step = 1 / nbDivs;
-// for(let i = 1; i < nbDivs; ++i) {
-// 	const dq = new DualQuaternion().lerpDualQuaternions(dq0, dq1, step * i);
-// 	dq.normalize()
-// 	dqh[i] = new DQHelper(dq)
-// 	dqh[i].size = 0.5;
-// 	scene.add(dqh[i]);
-
-// 	dq.lerpDualQuaternions(dq2, dq3, step * i);
-// 	dq.normalize()
-// 	dqh[i + nbDivs + 1] = new DQHelper(dq)
-// 	dqh[i + nbDivs + 1].size = 0.5;
-// 	scene.add(dqh[i + nbDivs + 1]);
-// }
 
 
 
