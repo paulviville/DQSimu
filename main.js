@@ -6,6 +6,7 @@ import DQHelper from './DQHelper.js';
 import { GUI } from './CMapJS/Libs/dat.gui.module.js';
 
 import CMap2 from './CMapJS/CMap/CMap2.js';
+import IncidenceGraph from './CMapJS/CMap/IncidenceGraph.js';
 import Renderer from './CMapJS/Rendering/Renderer.js';
 import {loadCMap2} from './CMapJS/IO/SurfaceFormats/CMap2IO.js';
 
@@ -111,8 +112,11 @@ scene.add(new THREE.AxesHelper(100))
 
 const controlDQ = new DualQuaternion;
 const controlDQHelper = new DQHelper(controlDQ);
+const controlDQ2 = new DualQuaternion;
+const controlDQHelper2 = new DQHelper(controlDQ2);
 // const controlDQHelper = new DQHelper();
 scene.add(controlDQHelper)
+scene.add(controlDQHelper2)
 
 
 const dqsInit = [
@@ -136,6 +140,10 @@ const dqsInit = [
 	// DualQuaternion.setFromRotationTranslation(
 	// 	new THREE.Quaternion().setFromAxisAngle(worldY, -Math.PI / 2),
 	// 	new THREE.Quaternion(1, 0, 0, 0)
+	// ),
+	// DualQuaternion.setFromRotationTranslation(
+	// 	new THREE.Quaternion(),
+	// 	new THREE.Quaternion(0, 0, 0, 0)
 	// ),
 	DualQuaternion.setFromRotationTranslation(
 		new THREE.Quaternion(),
@@ -169,12 +177,12 @@ const dqsTails = [];
 
 const octahedronOff = `OFF
 6 8 0
- 0.0  0.0  1.0
- 0.0  0.0 -1.0
- 0.0 -1.0  0.0
- 1.0  0.0  0.0
- 0.0  1.0  0.0
--1.0  0.0  0.0
+ 0.0  0.0  0.25
+ 0.0  0.0 -0.25
+ 0.0 -0.25  0.0
+ 0.25  0.0  0.0
+ 0.0  0.25  0.0
+-0.25  0.0  0.0
 3 0 2 3
 3 0 3 4
 3 0 4 5
@@ -191,15 +199,36 @@ mapRenderer.edges.create().addTo(scene);
 
 (function () {
 	const initPosDQ = map.addAttribute(map.vertex, "initDQ");
+	const currentDQ = map.addAttribute(map.vertex, "currentDQ");
 	const position = map.getAttribute(map.vertex, "position");
 
 	map.foreach(map.vertex, vd => {
 		const vid = map.cell(map.vertex, vd);
 		const dq = DualQuaternion.setFromTranslation(position[vid]);
 		initPosDQ[vid] = dq.clone();
+		currentDQ[vid] = dq.clone();
 	});
 	
 })()
+
+const displacement = new IncidenceGraph()
+displacement.createEmbedding(displacement.vertex);
+
+const dispNB = 1000;
+const dispPos = displacement.addAttribute(displacement.vertex, "position");
+for(let i = 0; i < dispNB; ++i) {
+	displacement.addVertex();
+	dispPos[i] = new THREE.Vector3;
+}
+
+
+for(let i = 0; i < dispNB - 1; ++i) {
+	displacement.addEdge(i, i + 1);
+}
+
+const displacementRenderer = new Renderer(displacement);
+displacementRenderer.vertices.create().addTo(scene);
+
 
 const nbTailDivs = 11;
 for(let i = 0; i < dqsInit.length; ++i) {
@@ -215,14 +244,12 @@ for(let i = 0; i < dqsInit.length; ++i) {
 }
 
 
-
-
 const settings = {
 	rotationAxis: new THREE.Vector3(0, 1, 0),
 	angle: 0,
 	translation: new THREE.Vector3(0, 0, 0),
 
-	TR: false,
+	TR: true,
 
 	normalizeYZ : function() {
 		const x2 = this.rotationAxis.x * this.rotationAxis.x;
@@ -261,8 +288,13 @@ const settings = {
 		controlDQHelper.dq = controlDQ;
 		controlDQHelper.update();
 
+		controlDQ2.copy(controlDQ).multiplyScalar(0.5);
+
+		controlDQHelper.dq = controlDQ2;
+		controlDQHelper.update();
+
 		this.updateDQs();
-		this.updateMap();
+		// this.updateMap();
 	},
 
 	updateDQs : function () {
@@ -297,7 +329,60 @@ const settings = {
 		});
 
 		mapRenderer.edges.update();
-	}
+	},
+	
+
+	play: false,
+	disp: 0,
+	step: function() {
+		const position = map.getAttribute(map.vertex, "position");
+		const currentDQ = map.getAttribute(map.vertex, "currentDQ");
+
+		const dt = 0.02;
+		const angleStep = this.angle * dt;
+		const axis = this.rotationAxis.clone();
+		const rotationStep = new THREE.Quaternion().setFromAxisAngle(axis, angleStep);
+		const translationStep = this.translation.clone();
+		translationStep.multiplyScalar(dt);
+
+		const dqStep = this.TR ? DualQuaternion.setFromTranslationRotation(rotationStep, translationStep) :
+			DualQuaternion.setFromRotationTranslation(rotationStep, translationStep);
+		dqStep.normalize()
+
+		map.foreach(map.vertex, vd => {
+			const vid = map.cell(map.vertex, vd);
+			const dq = currentDQ[vid].clone();
+			
+			dq.multiply(dqStep);
+			currentDQ[vid].copy(dq);
+			position[vid].copy(dq.transform(new THREE.Vector3));
+
+			if(vid == 0) {
+				dispPos[(this.disp++) % dispNB].copy(position[vid]) 
+			}
+		});
+
+		displacementRenderer.vertices.update()
+
+		mapRenderer.edges.update();
+	},
+
+	reset: function() {
+		const position = map.getAttribute(map.vertex, "position");
+		const initPosDQ = map.getAttribute(map.vertex, "initDQ");
+		const currentDQ = map.getAttribute(map.vertex, "currentDQ");
+
+		map.foreach(map.vertex, vd => {
+			const vid = map.cell(map.vertex, vd);
+			const dq = initPosDQ[vid].clone();
+			currentDQ[vid] = dq;
+
+			position[vid].copy(dq.transform(new THREE.Vector3));
+		});
+
+
+		mapRenderer.edges.update();
+	},	
 }
 
 settings.updateDQ();
@@ -315,13 +400,19 @@ const translationFolder = gui.addFolder("translation");
 translationFolder.add(settings.translation, "x", -1.0, 1.0).step(0.01).onChange(settings.updateDQ.bind(settings)).listen();
 translationFolder.add(settings.translation, "y", -1.0, 1.0).step(0.01).onChange(settings.updateDQ.bind(settings)).listen();
 translationFolder.add(settings.translation, "z", -1.0, 1.0).step(0.01).onChange(settings.updateDQ.bind(settings)).listen();
-
+const simulationFolder = gui.addFolder("simulation");
+simulationFolder.add(settings, "play");
+simulationFolder.add(settings, "step");
+simulationFolder.add(settings, "reset");
 
 
 
 let frameCount = 0;
 function update (t)
 {
+	if(settings.play) {
+		settings.step();
+	}
 }
 
 function render()
