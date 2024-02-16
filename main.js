@@ -181,11 +181,48 @@ const tetPoints = new IncidenceGraph;
 tetPoints.createEmbedding(tetPoints.vertex);
 const tetPosition = tetPoints.addAttribute(tetPoints.vertex, "position");
 
+tetPoints.addVertex();
+tetPoints.addVertex();
+tetPoints.addVertex();
+tetPoints.addVertex();
+
+const s = 5.0;
+tetPosition[0] = new THREE.Vector3(-s, s, -s);
+tetPosition[1] = new THREE.Vector3(s, -s, -s);
+tetPosition[2] = new THREE.Vector3(s, s, s);
+tetPosition[3] = new THREE.Vector3(-s, -s, s);
+
+
 const tetPointsRenderer = new Renderer(tetPoints);
 tetPointsRenderer.vertices.create({size: 0.035, color: new THREE.Color(0x00ff00)}).addTo(scene)
 
+const tetrahedra = [
+	[0, 1, 2, 3],
+];
+const tetrahedraMesh = [
+
+]
 
 let nbTPoints = 0;
+
+function addTetMesh () {
+	const tetMesh = new THREE.Mesh(
+		new THREE.TetrahedronGeometry(1, 0),
+		new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true})
+	)
+	scene.add(tetMesh)
+	return tetMesh 
+}
+
+const tetMesh = addTetMesh();
+tetrahedraMesh.push(tetMesh);
+console.log(tetMesh.geometry)
+tetMesh.geometry.vertices[0].copy(tetPosition[0])
+tetMesh.geometry.vertices[1].copy(tetPosition[1])
+tetMesh.geometry.vertices[2].copy(tetPosition[2])
+tetMesh.geometry.vertices[3].copy(tetPosition[3])
+tetMesh.geometry.verticesNeedUpdate = true;
+
 
 const settings = {
 	updateMap : function () {
@@ -203,8 +240,8 @@ const settings = {
 	dt: 0.01,
 	step: function() {
 		if(nbTPoints < nbpoints) {
-			tetPoints.addVertex();
-			tetPosition[nbTPoints] = position[nbTPoints].clone();
+			let v = tetPoints.addVertex();
+			tetPosition[v] = position[nbTPoints].clone();
 			++nbTPoints;
 		}
 
