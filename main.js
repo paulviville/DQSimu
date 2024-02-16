@@ -118,63 +118,6 @@ const controlDQHelper2 = new DQHelper(controlDQ2);
 scene.add(controlDQHelper)
 scene.add(controlDQHelper2)
 
-
-const dqsInit = [
-	
-	// DualQuaternion.setFromRotationTranslation(
-	// 	new THREE.Quaternion().setFromAxisAngle(worldZ, Math.PI / 2),
-	// 	new THREE.Quaternion(1, 0, 0, 0)
-	// ),
-	// DualQuaternion.setFromRotationTranslation(
-	// 	new THREE.Quaternion().setFromAxisAngle(worldZ, -Math.PI / 2),
-	// 	new THREE.Quaternion(1, 0, 0, 0)
-	// ),
-	// DualQuaternion.setFromRotationTranslation(
-	// 	new THREE.Quaternion().setFromAxisAngle(worldZ, -2*Math.PI / 2),
-	// 	new THREE.Quaternion(1, 0, 0, 0)
-	// ),
-	// DualQuaternion.setFromRotationTranslation(
-	// 	new THREE.Quaternion().setFromAxisAngle(worldY, Math.PI / 2),
-	// 	new THREE.Quaternion(1, 0, 0, 0)
-	// ),
-	// DualQuaternion.setFromRotationTranslation(
-	// 	new THREE.Quaternion().setFromAxisAngle(worldY, -Math.PI / 2),
-	// 	new THREE.Quaternion(1, 0, 0, 0)
-	// ),
-	// DualQuaternion.setFromRotationTranslation(
-	// 	new THREE.Quaternion(),
-	// 	new THREE.Quaternion(0, 0, 0, 0)
-	// ),
-	DualQuaternion.setFromRotationTranslation(
-		new THREE.Quaternion(),
-		new THREE.Quaternion(1, 0, 0, 0)
-	),
-	DualQuaternion.setFromRotationTranslation(
-		new THREE.Quaternion(),
-		new THREE.Quaternion(-1, 0, 0, 0)
-	),
-	DualQuaternion.setFromRotationTranslation(
-		new THREE.Quaternion(),
-		new THREE.Quaternion(0, -1, 0, 0)
-	),
-	DualQuaternion.setFromRotationTranslation(
-		new THREE.Quaternion(),
-		new THREE.Quaternion(0, 1, 0, 0)
-	),
-	DualQuaternion.setFromRotationTranslation(
-		new THREE.Quaternion(),
-		new THREE.Quaternion(0, 0, -1, 0)
-	),
-	DualQuaternion.setFromRotationTranslation(
-		new THREE.Quaternion(),
-		new THREE.Quaternion(0, 0, 1, 0)
-	),
-];
-
-const dqsTarget = []
-const dqsTails = [];
-
-
 const octahedronOff = `OFF
 6 8 0
  0.0  0.0  0.25
@@ -195,212 +138,146 @@ const octahedronOff = `OFF
 
 const map = loadCMap2('off', octahedronOff);
 const mapRenderer = new Renderer(map);
-mapRenderer.edges.create().addTo(scene);
+// mapRenderer.edges.create().addTo(scene);
 
-(function () {
-	const initPosDQ = map.addAttribute(map.vertex, "initDQ");
-	const currentDQ = map.addAttribute(map.vertex, "currentDQ");
-	const position = map.getAttribute(map.vertex, "position");
 
-	map.foreach(map.vertex, vd => {
-		const vid = map.cell(map.vertex, vd);
-		const dq = DualQuaternion.setFromTranslation(position[vid]);
-		initPosDQ[vid] = dq.clone();
-		currentDQ[vid] = dq.clone();
-	});
-	
-})()
 
-const displacement = new IncidenceGraph()
-displacement.createEmbedding(displacement.vertex);
+// const displacement = new IncidenceGraph()
+// displacement.createEmbedding(displacement.vertex);
 
-const dispNB = 1000;
-const dispPos = displacement.addAttribute(displacement.vertex, "position");
-for(let i = 0; i < dispNB; ++i) {
-	displacement.addVertex();
-	dispPos[i] = new THREE.Vector3;
+// const dispNB = 1000;
+// const dispPos = displacement.addAttribute(displacement.vertex, "position");
+// for(let i = 0; i < dispNB; ++i) {
+// 	displacement.addVertex();
+// 	dispPos[i] = new THREE.Vector3;
+// }
+
+
+// for(let i = 0; i < dispNB - 1; ++i) {
+// 	displacement.addEdge(i, i + 1);
+// }
+
+// const displacementRenderer = new Renderer(displacement);
+// displacementRenderer.vertices.create().addTo(scene);
+
+
+const particles = new IncidenceGraph();
+particles.createEmbedding(particles.vertex);
+
+const position = particles.addAttribute(particles.vertex, "position");
+const mass = particles.addAttribute(particles.vertex, "mass");
+const radius = particles.addAttribute(particles.vertex, "radius");
+const velocity = particles.addAttribute(particles.vertex, "velocity");
+
+const nbParticles = 50;
+for(let i = 0; i < nbParticles; ++i) {
+	particles.addVertex();
+	position[i] = new THREE.Vector3(2*Math.random()-1, 2*Math.random()-1, 2*Math.random()-1);
+	velocity[i] = new THREE.Vector3(2*Math.random()-1, 2*Math.random()-1, 2*Math.random()-1);
+	radius[i] = 0.05+Math.random()*0.1;
+	mass[i] = 4/3* Math.PI * Math.pow(radius[i], 3);
 }
 
+const particlesRenderer = new Renderer(particles);
+particlesRenderer.vertices.create().addTo(scene)
 
-for(let i = 0; i < dispNB - 1; ++i) {
-	displacement.addEdge(i, i + 1);
+
+function collideParticles(p0, p1, restitution) {
+	const direction = position[p1].clone().sub(position[p0]);
+	const d = direction.length();
+
+	if(d == 0.0 || d > radius[p0] + radius[p1])
+		return;
+
+	direction.multiplyScalar(1.0 / d);
+
+	const correction = (radius[p0] + radius[p1] - d) / 2.0;
+	position[p0].addScaledVector(direction, -correction);
+	position[p1].addScaledVector(direction, correction);
+
+	const v0 = velocity[p0].dot(direction);
+	const v1 = velocity[p1].dot(direction);
+
+	const m0 = mass[p0];
+	const m1 = mass[p1];
+
+	const newV0 = (m0 * v0 + m1 * v1 - m1 * (v0 - v1) * restitution) / (m0 + m1);
+	const newV1 = (m0 * v0 + m1 * v1 - m0 * (v1 - v0) * restitution) / (m0 + m1);
+
+	velocity[p0].addScaledVector(direction, newV0 - v0);
+	velocity[p1].addScaledVector(direction, newV1 - v1);
 }
 
-const displacementRenderer = new Renderer(displacement);
-displacementRenderer.vertices.create().addTo(scene);
-
-
-const nbTailDivs = 11;
-for(let i = 0; i < dqsInit.length; ++i) {
-	dqsTarget.push(new DualQuaternion);
-
-	dqsTails.push([])
-	for(let j = 0; j < nbTailDivs; ++j) {
-		const dqh = new DQHelper();
-		dqh.size = 0.5
-		scene.add(dqh);
-		dqsTails[i].push(dqh);
+function collideWalls(p) {
+	const size = 1;
+	if(position[p].x < -size + radius[p]) {
+		position[p].x = -size + radius[p];
+		velocity[p].x *= -1;
 	}
+	 
+	if(position[p].x > size - radius[p]) {
+		position[p].x = size - radius[p];
+		velocity[p].x *= -1;
+	}
+	 
+	if(position[p].y < -size + radius[p]) {
+		position[p].y = -size + radius[p];
+		velocity[p].y *= -1;
+	}
+	 
+	if(position[p].y > size - radius[p]) {
+		position[p].y = size - radius[p];
+		velocity[p].y *= -1;
+	}
+
+	if(position[p].z < -size + radius[p]) {
+		position[p].z = -size + radius[p];
+		velocity[p].z *= -1;
+	}
+	 
+	if(position[p].z > size - radius[p]) {
+		position[p].z = size - radius[p];
+		velocity[p].z *= -1;
+ 	}
 }
 
 
 const settings = {
-	rotationAxis: new THREE.Vector3(0, 1, 0),
-	angle: 0,
-	translation: new THREE.Vector3(0, 0, 0),
-
-	TR: true,
-
-	normalizeYZ : function() {
-		const x2 = this.rotationAxis.x * this.rotationAxis.x;
-		const vec2 = new THREE.Vector2(this.rotationAxis.y+0.001, this.rotationAxis.z).normalize().multiplyScalar(((1-x2)));
-		this.rotationAxis.set(this.rotationAxis.x, vec2.x, vec2.y);
-		this.rotationAxis.normalize();
-		this.updateDQ();
-	},
-
-	normalizeXZ : function() {
-		const y2 = this.rotationAxis.y * this.rotationAxis.y;
-		const vec2 = new THREE.Vector2(this.rotationAxis.z+0.001, this.rotationAxis.x).normalize().multiplyScalar(((1-y2)));
-		this.rotationAxis.set(vec2.y, this.rotationAxis.y, vec2.x);
-		this.rotationAxis.normalize();
-		this.updateDQ();
-	},
-
-	normalizeXY : function() {
-		const z2 = this.rotationAxis.z * this.rotationAxis.z;
-		const vec2 = new THREE.Vector2(this.rotationAxis.x+0.001, this.rotationAxis.y).normalize().multiplyScalar(((1-z2)));
-		this.rotationAxis.set(vec2.x, vec2.y, this.rotationAxis.z);
-		this.rotationAxis.normalize();
-		this.updateDQ();
-	},
-
-	updateDQ : function () {
-		const rotation = new THREE.Quaternion().setFromAxisAngle(this.rotationAxis, this.angle);
-		const translation = new THREE.Quaternion(this.translation.x, this.translation.y, this.translation.z, 0);
-
-		if(this.TR) {
-			controlDQ.copy(DualQuaternion.setFromTranslationRotation(rotation, translation));
-		} else {
-			controlDQ.copy(DualQuaternion.setFromRotationTranslation(rotation, translation));
-		}
-
-		controlDQHelper.dq = controlDQ;
-		controlDQHelper.update();
-
-		controlDQ2.copy(controlDQ).multiplyScalar(0.5);
-
-		controlDQHelper.dq = controlDQ2;
-		controlDQHelper.update();
-
-		this.updateDQs();
-		// this.updateMap();
-	},
-
-	updateDQs : function () {
-		const step = 1 / (nbTailDivs - 1)
-		for(let i = 0; i < dqsInit.length; ++i) {
-			dqsTarget[i] = dqsInit[i].clone().premultiply(controlDQ);
-			for(let j = 0; j < nbTailDivs; ++j) {
-				// dqsTails[i][j].dq = dqsInit[i].clone()
-				dqsTails[i][j].dq = new DualQuaternion().lerpDualQuaternions(dqsInit[i], dqsTarget[i], step * j).normalize()
-			}
-		}
-	},
-
 	updateMap : function () {
-		const position = map.getAttribute(map.vertex, "position");
-		const initPosDQ = map.getAttribute(map.vertex, "initDQ");
 
-		map.foreach(map.vertex, vd => {
-			const vid = map.cell(map.vertex, vd);
-			const dq = initPosDQ[vid].clone();
-
-			dq.premultiply(controlDQ);
-			position[vid].copy(dq.transform(new THREE.Vector3));
-		});
-
-		map.foreach(map.edge, ed => {
-			const vid0 = map.cell(map.vertex, ed);
-			const vid1 = map.cell(map.vertex, map.phi2[ed]);
-
-			console.log(position[vid0].distanceTo(position[vid1]));
-
-		});
-
-		mapRenderer.edges.update();
 	},
 	
+	updateDisplay : function () {
+		particlesRenderer.vertices.update();
+
+	},
 
 	play: false,
 	disp: 0,
+	dt: 0.01,
 	step: function() {
-		const position = map.getAttribute(map.vertex, "position");
-		const currentDQ = map.getAttribute(map.vertex, "currentDQ");
+		for(let i = 0; i < nbParticles; ++i) {
+			position[i].addScaledVector(velocity[i], this.dt);
 
-		const dt = 0.02;
-		const angleStep = this.angle * dt;
-		const axis = this.rotationAxis.clone();
-		const rotationStep = new THREE.Quaternion().setFromAxisAngle(axis, angleStep);
-		const translationStep = this.translation.clone();
-		translationStep.multiplyScalar(dt);
-
-		const dqStep = this.TR ? DualQuaternion.setFromTranslationRotation(rotationStep, translationStep) :
-			DualQuaternion.setFromRotationTranslation(rotationStep, translationStep);
-		dqStep.normalize()
-
-		map.foreach(map.vertex, vd => {
-			const vid = map.cell(map.vertex, vd);
-			const dq = currentDQ[vid].clone();
-			
-			dq.multiply(dqStep);
-			currentDQ[vid].copy(dq);
-			position[vid].copy(dq.transform(new THREE.Vector3));
-
-			if(vid == 0) {
-				dispPos[(this.disp++) % dispNB].copy(position[vid]) 
+			for(let j = i + 1; j < nbParticles; ++j) {
+				collideParticles(i, j, 0.5);
 			}
-		});
 
-		displacementRenderer.vertices.update()
+			collideWalls(i);
+		}
 
-		mapRenderer.edges.update();
+		this.updateDisplay();
 	},
 
 	reset: function() {
-		const position = map.getAttribute(map.vertex, "position");
-		const initPosDQ = map.getAttribute(map.vertex, "initDQ");
-		const currentDQ = map.getAttribute(map.vertex, "currentDQ");
 
-		map.foreach(map.vertex, vd => {
-			const vid = map.cell(map.vertex, vd);
-			const dq = initPosDQ[vid].clone();
-			currentDQ[vid] = dq;
-
-			position[vid].copy(dq.transform(new THREE.Vector3));
-		});
-
-
-		mapRenderer.edges.update();
 	},	
 }
 
-settings.updateDQ();
-settings.updateMap();
  
 const gui = new GUI({autoPlace: true, hideable: false});
-const DQFolder = gui.addFolder("dual quaternion");
-DQFolder.add(settings, "TR").onChange(settings.updateDQ.bind(settings));
-const rotationFolder = gui.addFolder("rotation");
-rotationFolder.add(settings.rotationAxis, "x", -1.0, 1.0).step(0.01).onChange(settings.normalizeYZ.bind(settings)).listen();
-rotationFolder.add(settings.rotationAxis, "y", -1.0, 1.0).step(0.01).onChange(settings.normalizeXZ.bind(settings)).listen();
-rotationFolder.add(settings.rotationAxis, "z", -1.0, 1.0).step(0.01).onChange(settings.normalizeXY.bind(settings)).listen();
-rotationFolder.add(settings, "angle", -Math.PI * 4, Math.PI * 4).step(0.01).onChange(settings.updateDQ.bind(settings));
-const translationFolder = gui.addFolder("translation");
-translationFolder.add(settings.translation, "x", -1.0, 1.0).step(0.01).onChange(settings.updateDQ.bind(settings)).listen();
-translationFolder.add(settings.translation, "y", -1.0, 1.0).step(0.01).onChange(settings.updateDQ.bind(settings)).listen();
-translationFolder.add(settings.translation, "z", -1.0, 1.0).step(0.01).onChange(settings.updateDQ.bind(settings)).listen();
 const simulationFolder = gui.addFolder("simulation");
+simulationFolder.open()
 simulationFolder.add(settings, "play");
 simulationFolder.add(settings, "step");
 simulationFolder.add(settings, "reset");
