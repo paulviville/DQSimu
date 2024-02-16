@@ -161,86 +161,31 @@ const mapRenderer = new Renderer(map);
 // displacementRenderer.vertices.create().addTo(scene);
 
 
-const particles = new IncidenceGraph();
-particles.createEmbedding(particles.vertex);
+const points = new IncidenceGraph();
+points.createEmbedding(points.vertex);
 
-const position = particles.addAttribute(particles.vertex, "position");
-const mass = particles.addAttribute(particles.vertex, "mass");
-const radius = particles.addAttribute(particles.vertex, "radius");
-const velocity = particles.addAttribute(particles.vertex, "velocity");
+const position = points.addAttribute(points.vertex, "position");
+const velocity = points.addAttribute(points.vertex, "velocity");
 
-const nbParticles = 50;
-for(let i = 0; i < nbParticles; ++i) {
-	particles.addVertex();
+const nbpoints = 50;
+for(let i = 0; i < nbpoints; ++i) {
+	points.addVertex();
 	position[i] = new THREE.Vector3(2*Math.random()-1, 2*Math.random()-1, 2*Math.random()-1);
 	velocity[i] = new THREE.Vector3(2*Math.random()-1, 2*Math.random()-1, 2*Math.random()-1);
-	radius[i] = 0.05+Math.random()*0.1;
-	mass[i] = 4/3* Math.PI * Math.pow(radius[i], 3);
 }
 
-const particlesRenderer = new Renderer(particles);
-particlesRenderer.vertices.create().addTo(scene)
+const pointsRenderer = new Renderer(points);
+pointsRenderer.vertices.create({size: 0.025}).addTo(scene)
+
+const tetPoints = new IncidenceGraph;
+tetPoints.createEmbedding(tetPoints.vertex);
+const tetPosition = tetPoints.addAttribute(tetPoints.vertex, "position");
+
+const tetPointsRenderer = new Renderer(tetPoints);
+tetPointsRenderer.vertices.create({size: 0.035, color: new THREE.Color(0x00ff00)}).addTo(scene)
 
 
-function collideParticles(p0, p1, restitution) {
-	const direction = position[p1].clone().sub(position[p0]);
-	const d = direction.length();
-
-	if(d == 0.0 || d > radius[p0] + radius[p1])
-		return;
-
-	direction.multiplyScalar(1.0 / d);
-
-	const correction = (radius[p0] + radius[p1] - d) / 2.0;
-	position[p0].addScaledVector(direction, -correction);
-	position[p1].addScaledVector(direction, correction);
-
-	const v0 = velocity[p0].dot(direction);
-	const v1 = velocity[p1].dot(direction);
-
-	const m0 = mass[p0];
-	const m1 = mass[p1];
-
-	const newV0 = (m0 * v0 + m1 * v1 - m1 * (v0 - v1) * restitution) / (m0 + m1);
-	const newV1 = (m0 * v0 + m1 * v1 - m0 * (v1 - v0) * restitution) / (m0 + m1);
-
-	velocity[p0].addScaledVector(direction, newV0 - v0);
-	velocity[p1].addScaledVector(direction, newV1 - v1);
-}
-
-function collideWalls(p) {
-	const size = 1;
-	if(position[p].x < -size + radius[p]) {
-		position[p].x = -size + radius[p];
-		velocity[p].x *= -1;
-	}
-	 
-	if(position[p].x > size - radius[p]) {
-		position[p].x = size - radius[p];
-		velocity[p].x *= -1;
-	}
-	 
-	if(position[p].y < -size + radius[p]) {
-		position[p].y = -size + radius[p];
-		velocity[p].y *= -1;
-	}
-	 
-	if(position[p].y > size - radius[p]) {
-		position[p].y = size - radius[p];
-		velocity[p].y *= -1;
-	}
-
-	if(position[p].z < -size + radius[p]) {
-		position[p].z = -size + radius[p];
-		velocity[p].z *= -1;
-	}
-	 
-	if(position[p].z > size - radius[p]) {
-		position[p].z = size - radius[p];
-		velocity[p].z *= -1;
- 	}
-}
-
+let nbTPoints = 0;
 
 const settings = {
 	updateMap : function () {
@@ -248,7 +193,8 @@ const settings = {
 	},
 	
 	updateDisplay : function () {
-		particlesRenderer.vertices.update();
+		pointsRenderer.vertices.update();
+		tetPointsRenderer.vertices.update();
 
 	},
 
@@ -256,14 +202,10 @@ const settings = {
 	disp: 0,
 	dt: 0.01,
 	step: function() {
-		for(let i = 0; i < nbParticles; ++i) {
-			position[i].addScaledVector(velocity[i], this.dt);
-
-			for(let j = i + 1; j < nbParticles; ++j) {
-				collideParticles(i, j, 0.5);
-			}
-
-			collideWalls(i);
+		if(nbTPoints < nbpoints) {
+			tetPoints.addVertex();
+			tetPosition[nbTPoints] = position[nbTPoints].clone();
+			++nbTPoints;
 		}
 
 		this.updateDisplay();
