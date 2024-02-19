@@ -224,6 +224,25 @@ tetMesh.geometry.vertices[3].copy(tetPosition[3])
 tetMesh.geometry.verticesNeedUpdate = true;
 
 
+function circumCenter(p0, p1, p2, p3) {
+	const b = p1.clone().sub(p0);
+	const c = p2.clone().sub(p0);
+	const d = p3.clone().sub(p0);
+
+	const det = 2.0 * b.dot(c.clone().cross(d));
+	// const det = 2.0 * (b.x*(c.y*d.z - c.z*d.y) - b.y*(c.x*d.z - c.z*d.x) + b.z*(c.x*d.y - c.y*d.x));
+	if(det == 0)
+		return p0.clone();
+
+	const v = new THREE.Vector3();
+	v.add(c.clone().cross(d).multiplyScalar(b.dot(b)));
+	v.add(d.clone().cross(b).multiplyScalar(c.dot(c)));
+	v.add(b.clone().cross(c).multiplyScalar(d.dot(d)));
+	v.multiplyScalar(1/det);
+	v.add(p0);
+	return v;
+}
+
 const settings = {
 	updateMap : function () {
 
