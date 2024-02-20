@@ -10,6 +10,7 @@ import IncidenceGraph from './CMapJS/CMap/IncidenceGraph.js';
 import Renderer from './CMapJS/Rendering/Renderer.js';
 // import {loadCMap2, mapFromGeometry} from './CMapJS/IO/SurfaceFormats/CMap2IO.js';
 import {mapFromGeometry} from './CMapJS/IO/VolumesFormats/CMap3IO.js';
+import Stats from './CMapJS/Libs/stats.module.js';
 
 
 const scene = new THREE.Scene();
@@ -43,7 +44,8 @@ window.camPos = function() {
 }
 
 
-
+const stats = new Stats()
+document.body.appendChild( stats.dom );
 
 
 
@@ -446,7 +448,7 @@ const tetRestVolume = bunny.addAttribute(volume, "tetRestVolume");
 
 /// initialization
 bunny.foreach(vertex, vd => {
-	position[bunny.cell(vertex, vd)].y += 1;
+	position[bunny.cell(vertex, vd)];
 	positionInit[bunny.cell(vertex, vd)] = position[bunny.cell(vertex, vd)].clone();
 	prevPosition[bunny.cell(vertex, vd)] = new THREE.Vector3;
 	invMass[bunny.cell(vertex, vd)] = 0;
@@ -480,7 +482,7 @@ bunny.foreach(volume, wd => {
 
 console.log(tetRestVolume)
 
-const gravity = new THREE.Vector3(0, -1, 0);
+const gravity = new THREE.Vector3(0, -5, 0);
 
 function computeEdgeLengths() {
 	bunny.foreach(bunny.edge, ed => {
@@ -690,6 +692,7 @@ const settings = {
 	
 	updateDisplay : function () {
 		bunnyRenderer.edges.update();
+		// bunnyRenderer.faces.update();
 
 	},
 
@@ -726,12 +729,13 @@ simulationFolder.add(settings, "play");
 simulationFolder.add(settings, "step");
 simulationFolder.add(settings, "reset");
 simulationFolder.add(settings, "volumeCompliance").min(0).max(10000).step(1); 
-simulationFolder.add(settings, "edgeCompliance").min(0).max(10000).step(1); 
+simulationFolder.add(settings, "edgeCompliance").min(0).max(1000).step(1); 
 
 
 let frameCount = 0;
 function update (t)
 {
+	stats.update()
 	if(settings.play) {
 		settings.step();
 	}
