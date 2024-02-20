@@ -411,85 +411,210 @@ for(let i = 0; i < bunnyData.tetIds.length; i += 4) {
 	geometry.tet.push(tet);
 }
 
-const bunnyMap = mapFromGeometry(geometry)
+const bunny = mapFromGeometry(geometry)
 
-const bunnyRenderer = new Renderer(bunnyMap);
+const bunnyRenderer = new Renderer(bunny);
 bunnyRenderer.edges.create({size: 0.35}).addTo(scene);
-bunnyRenderer.faces.create().addTo(scene);
+// bunnyRenderer.faces.create().addTo(scene);
 
 
 function computeTetVolume(p0, p1, p2, p3) {
 	return (1/6) * (p1.clone().sub(p0).cross(p2.clone().sub(p0)).dot(p3.clone().sub(p0)))
 }
 
+const vertex = bunny.vertex;
+const edge = bunny.edge;
+const volume = bunny.volume;
 
+bunny.createEmbedding(volume);
+bunny.setEmbeddings(volume);
+// bunny.foreach(volume, wd => {
+// 	console.log(bunny.cell(volume, wd));
+// })
 
-bunnyMap.createEmbedding(bunnyMap.volume);
-bunnyMap.setEmbeddings(bunnyMap.volume)
-const position = bunnyMap.getAttribute(bunnyMap.vertex, "position");
-const prevPosition = bunnyMap.addAttribute(bunnyMap.vertex, "prevPosition");
-const invMass = bunnyMap.addAttribute(bunnyMap.vertex, "invMass");
-const velocity = bunnyMap.addAttribute(bunnyMap.vertex, "velocity");
+const position = bunny.getAttribute(vertex, "position");
+const positionInit = bunny.addAttribute(vertex, "positionInit");
+const prevPosition = bunny.addAttribute(vertex, "prevPosition");
+const invMass = bunny.addAttribute(vertex, "invMass");
+const velocity = bunny.addAttribute(vertex, "velocity");
 
-const edgeLength = bunnyMap.addAttribute(bunnyMap.edge, "edgeLength");
-const edgeRestLength = bunnyMap.addAttribute(bunnyMap.edge, "edgeRestLength");
-const tetVolume = bunnyMap.addAttribute(bunnyMap.volume, "tetVolume");
-const tetRestVolume = bunnyMap.addAttribute(bunnyMap.volume, "tetRestVolume");
+const edgeLength = bunny.addAttribute(edge, "edgeLength");
+const edgeRestLength = bunny.addAttribute(edge, "edgeRestLength");
+const tetVolume = bunny.addAttribute(volume, "tetVolume");
+const tetRestVolume = bunny.addAttribute(volume, "tetRestVolume");
 
 
 /// initialization
-bunnyMap.foreach(bunnyMap.vertex, vd => {
-	prevPosition[bunnyMap.cell(bunnyMap.vertex, vd)] = new THREE.Vector3;
-	invMass[bunnyMap.cell(bunnyMap.vertex, vd)] = 0;
-	velocity[bunnyMap.cell(bunnyMap.vertex, vd)] = new THREE.Vector3;
+bunny.foreach(vertex, vd => {
+	position[bunny.cell(vertex, vd)].y += 1;
+	positionInit[bunny.cell(vertex, vd)] = position[bunny.cell(vertex, vd)].clone();
+	prevPosition[bunny.cell(vertex, vd)] = new THREE.Vector3;
+	invMass[bunny.cell(vertex, vd)] = 0;
+	velocity[bunny.cell(vertex, vd)] = new THREE.Vector3;
+}, {useEmb: true});
+
+bunnyRenderer.edges.update()
+
+bunny.foreach(edge, ed => {
+	const p0 = position[bunny.cell(vertex, ed)];
+	const p1 = position[bunny.cell(vertex, bunny.phi2[ed])];
+
+	edgeRestLength[bunny.cell(edge, ed)] = p0.distanceTo(p1);
+
 });
 
-bunnyMap.foreach(bunnyMap.edge, ed => {
-	const p0 = position[bunnyMap.cell(bunnyMap.vertex, ed)];
-	const p1 = position[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi2[ed])];
-
-	edgeRestLength[bunnyMap.cell(bunnyMap.edge, ed)] = p0.distanceTo(p1);
-
-});
-
-bunnyMap.foreach(bunnyMap.volume, wd => {
-	const p0 = position[bunnyMap.cell(bunnyMap.vertex, wd)];
-	const p1 = position[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi_1[wd])];
-	const p2 = position[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi1[wd])];
-	const p3 = position[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi([2, -1], wd))];
+bunny.foreach(volume, wd => {
+	const p0 = position[bunny.cell(vertex, wd)];
+	const p1 = position[bunny.cell(vertex, bunny.phi_1[wd])];
+	const p2 = position[bunny.cell(vertex, bunny.phi1[wd])];
+	const p3 = position[bunny.cell(vertex, bunny.phi([2, -1], wd))];
 	const vol = computeTetVolume(p0, p1, p2, p3);
-	tetRestVolume[bunnyMap.cell(bunnyMap.vertex, wd)] = vol;
-
+	tetRestVolume[bunny.cell(volume, wd)] = vol;
 	const invM = vol > 0.0 ? 1.0/(vol / 4.0) : 0.0;
-	invMass[bunnyMap.cell(bunnyMap.vertex, wd)] += invM;
-	invMass[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi_1[wd])] += invM;
-	invMass[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi1[wd])] += invM;
-	invMass[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi([2, -1], wd))] += invM;
+	invMass[bunny.cell(vertex, wd)] += invM;
+	invMass[bunny.cell(vertex, bunny.phi_1[wd])] += invM;
+	invMass[bunny.cell(vertex, bunny.phi1[wd])] += invM;
+	invMass[bunny.cell(vertex, bunny.phi([2, -1], wd))] += invM;
 
-});
-// console.log(edgeRestLength)
-// console.log(tetRestVolume)
-// console.log(invMass)
+}, {useEmb: false});
+
+console.log(tetRestVolume)
+
+const gravity = new THREE.Vector3(0, -1, 0);
 
 function computeEdgeLengths() {
-	bunnyMap.foreach(bunnyMap.edge, ed => {
-		const p0 = position[bunnyMap.cell(bunnyMap.vertex, ed)];
-		const p1 = position[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi2[ed])];
+	bunny.foreach(bunny.edge, ed => {
+		const p0 = position[bunny.cell(vertex, ed)];
+		const p1 = position[bunny.cell(vertex, bunny.phi2[ed])];
 	
-		edgeLength[bunnyMap.cell(bunnyMap.edge, ed)] = p0.distanceTo(p1);
+		edgeLength[bunny.cell(bunny.edge, ed)] = p0.distanceTo(p1);
 	});
 }
 
 function computeVolumes() {
-	bunnyMap.foreach(bunnyMap.volume, wd => {
-		const p0 = position[bunnyMap.cell(bunnyMap.vertex, wd)];
-		const p1 = position[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi_1[wd])];
-		const p2 = position[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi1[wd])];
-		const p3 = position[bunnyMap.cell(bunnyMap.vertex, bunnyMap.phi([2, -1], wd))];
-		tetVolume[bunnyMap.cell(bunnyMap.vertex, wd)] = computeTetVolume(p0, p1, p2, p3)
+	bunny.foreach(bunny.volume, wd => {
+		const p0 = position[bunny.cell(vertex, wd)];
+		const p1 = position[bunny.cell(vertex, bunny.phi_1[wd])];
+		const p2 = position[bunny.cell(vertex, bunny.phi1[wd])];
+		const p3 = position[bunny.cell(vertex, bunny.phi([2, -1], wd))];
+		tetRestVolume[bunny.cell(vertex, wd)] = computeTetVolume(p0, p1, p2, p3)
 	});
 }
 
+function preSolve(dt) {
+	bunny.foreach(vertex, vd => {
+		const vid = bunny.cell(vertex, vd);
+
+		if(invMass[vid] == 0.0)
+			return false;
+
+		velocity[vid].addScaledVector(gravity, dt);
+		prevPosition[vid].copy(position[vid]);
+		position[vid].addScaledVector(velocity[vid], dt);
+
+		if(position[vid].y < 0.0) {
+			position[vid].copy(prevPosition[vid]);
+			position[vid].y = 0.0;
+		}
+
+	}, {useEmb: true});
+}
+
+function solveEdges(compliance, dt) {
+	const alpha = compliance / (dt * dt);
+
+	const grad = new THREE.Vector3;
+
+	bunny.foreach(edge, ed => {
+		const eid = bunny.cell(edge, ed);
+		const vid0 = bunny.cell(vertex, ed);
+		const vid1 = bunny.cell(vertex, bunny.phi2[ed]);
+
+		const w0 = invMass[vid0];
+		const w1 = invMass[vid1];
+		const w = w0 + w1;
+
+		if(w == 0.0)
+			return false;
+
+		grad.subVectors(position[vid0], position[vid1]);
+		const length = grad.length();
+		if(length == 0.0)
+			return false;
+
+		grad.multiplyScalar(1/length);
+		const c = length - edgeRestLength[eid];
+		const s = -c / (w + alpha);
+		position[vid0].addScaledVector(grad, s * w0);
+		position[vid1].addScaledVector(grad, -s * w1);
+	}, {useEmb: true});
+}
+
+function solveVolumes(compliance, dt) {
+	const alpha = compliance / (dt * dt);
+
+	const g0 = new THREE.Vector3;
+	const g1 = new THREE.Vector3;
+	const g2 = new THREE.Vector3;
+	const g3 = new THREE.Vector3;
+	bunny.foreach(volume, wd => {
+		const wid = bunny.cell(volume, wd);
+
+		const vid0 = bunny.cell(vertex, wd);
+		const vid1 = bunny.cell(vertex, bunny.phi_1[wd]);
+		const vid2 = bunny.cell(vertex, bunny.phi1[wd]);
+		const vid3 = bunny.cell(vertex, bunny.phi_1[bunny.phi2[wd]]);
+
+		const p0 = position[vid0];
+		const p1 = position[vid1];
+		const p2 = position[vid2];
+		const p3 = position[vid3];
+
+		g0.crossVectors(p3.clone().sub(p1), p2.clone().sub(p1)).multiplyScalar(1.0/6.0);
+		g1.crossVectors(p2.clone().sub(p0), p3.clone().sub(p0)).multiplyScalar(1.0/6.0);
+		g2.crossVectors(p3.clone().sub(p0), p1.clone().sub(p0)).multiplyScalar(1.0/6.0);
+		g3.crossVectors(p1.clone().sub(p0), p2.clone().sub(p0)).multiplyScalar(1.0/6.0);
+
+		let w = invMass[vid0] * g0.lengthSq();
+		w += invMass[vid1] * g1.lengthSq();
+		w += invMass[vid2] * g2.lengthSq();
+		w += invMass[vid3] * g3.lengthSq();
+
+		if(w == 0.0)
+			return false;
+
+		const vol = computeTetVolume(p0, p1, p2, p3);
+		const restVol = tetRestVolume[wid];
+		// console.log(vol, restVol)
+
+		const c = vol - restVol;
+		const s = -c / (w + alpha);
+		// if(c > 0.0000000001 || s > 0.000000001)
+		// console.log(c, s)
+		// console.log(g0)
+		position[vid0].addScaledVector(g0, s * invMass[vid0]);
+		position[vid1].addScaledVector(g1, s * invMass[vid1]);
+		position[vid2].addScaledVector(g2, s * invMass[vid2]);
+		position[vid3].addScaledVector(g3, s * invMass[vid3]);
+	}, {useEmb: true});
+}
+
+function solve(dt, volumeCompliance, edgeCompliance) {
+	solveEdges(edgeCompliance, dt);
+	solveVolumes(volumeCompliance, dt);
+
+}
+
+function postSolve(dt) {
+	bunny.foreach(vertex, vd => {
+		const vid = bunny.cell(vertex, vd);
+
+		if(invMass[vid] == 0.0)
+			return false;
+
+		velocity[vid].subVectors(position[vid], prevPosition[vid]).multiplyScalar(1/dt);
+	}, {useEmb: true});
+}
 
 
 const keyHeld = {};
@@ -564,19 +689,32 @@ const settings = {
 	},
 	
 	updateDisplay : function () {
+		bunnyRenderer.edges.update();
 
 	},
 
 	play: false,
 	disp: 0,
-	dt: 0.01,
+	dt: 0.0018,
+	volumeCompliance: 0,
+	edgeCompliance: 0,
 	step: function() {
 
+		for(let i = 0; i < 10; ++i) {
+			preSolve(this.dt);
+			solve(this.dt, this.volumeCompliance, this.edgeCompliance);
+			postSolve(this.dt);
+		}
 		this.updateDisplay();
 	},
 
 	reset: function() {
+		bunny.foreach(vertex, vd => {
+			position[bunny.cell(vertex, vd)].copy(positionInit[bunny.cell(vertex, vd)]);
+			velocity[bunny.cell(vertex, vd)].set(0, 0, 0);
+		}, {useEmb: true});
 
+		this.updateDisplay();
 	},	
 }
 
@@ -587,7 +725,8 @@ simulationFolder.open()
 simulationFolder.add(settings, "play");
 simulationFolder.add(settings, "step");
 simulationFolder.add(settings, "reset");
-
+simulationFolder.add(settings, "volumeCompliance").min(0).max(10000).step(1); 
+simulationFolder.add(settings, "edgeCompliance").min(0).max(10000).step(1); 
 
 
 let frameCount = 0;
