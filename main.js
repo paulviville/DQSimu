@@ -11,6 +11,7 @@ import Renderer from './CMapJS/Rendering/Renderer.js';
 // import {loadCMap2, mapFromGeometry} from './CMapJS/IO/SurfaceFormats/CMap2IO.js';
 import {mapFromGeometry} from './CMapJS/IO/VolumesFormats/CMap3IO.js';
 import Stats from './CMapJS/Libs/stats.module.js';
+import Skeleton, { Key , SkeletonRenderer } from './Skeleton.js';
 
 
 const scene = new THREE.Scene();
@@ -1607,8 +1608,55 @@ bunnyRenderer.volumes.rescale(0.8)
 
 
 
+const worldY = new THREE.Vector3(0, 1, 0);
+const worldUp = new THREE.Vector3(0, 0, 1);
+
+const translation = new THREE.Quaternion(0, 1.0, 0, 0);
+const rotation = new THREE.Quaternion().setFromAxisAngle(worldY, 0);
+const transform = DualQuaternion.setFromRotationTranslation(rotation.clone(), translation.clone());
+const key0 = new Key(0, transform);
+
+const translationroot = new THREE.Quaternion(0, 0.25, 0, 0);
+const transformRoot = DualQuaternion.setFromRotationTranslation(new THREE.Quaternion, translationroot)
+const keyroot = new Key(0, transformRoot);
+
+const rotation1 = new THREE.Quaternion().setFromAxisAngle(worldUp, 1.0);
+const transform1 = DualQuaternion.setFromRotationTranslation(rotation1.clone(), translation.clone());
+transform1.normalize();
+const key1 = new Key(100, transform1);
 
 
+const skeleton = new Skeleton;
+const root = skeleton.newBone("root");
+skeleton.addKey(root, keyroot);
+const bone0 = skeleton.newBone();
+skeleton.setParent(bone0, root);
+skeleton.addKey(bone0, key0);
+const bone1 = skeleton.newBone();
+skeleton.setParent(bone1, bone0);
+skeleton.addKey(bone1, key0);
+const bone2 = skeleton.newBone();
+skeleton.setParent(bone2, bone1);
+skeleton.addKey(bone2, key0);
+const bone3 = skeleton.newBone();
+skeleton.setParent(bone3, bone2);
+skeleton.addKey(bone3, key0);
+
+skeleton.addKey(bone0, key1);
+skeleton.addKey(bone1, key1);
+skeleton.addKey(bone2, key1);
+skeleton.addKey(bone3, key1);
+
+
+skeleton.setBindTransforms();
+skeleton.computeWorldTransforms(0);
+skeleton.computeOffsets();
+
+const sRenderer = new SkeletonRenderer(skeleton);
+sRenderer.createVertices();
+sRenderer.createEdges();
+scene.add(sRenderer.vertices)
+scene.add(sRenderer.edges)
 
 
 
@@ -1992,7 +2040,11 @@ scene.add(grid2)
 scene.add(new THREE.AxesHelper(100))
 
 
-
+const sphere = new THREE.Mesh(
+	new THREE.SphereGeometry(0.05, 16, 16),
+	new THREE.MeshLambertMaterial({color: 0x0000ff})
+);
+scene.add(sphere)
 
 
 
@@ -2019,6 +2071,11 @@ const settings = {
 
 	},
 
+	sphereId : 0,
+	updateSphere : function () {
+		sphere.position.copy(position[this.sphereId])
+	},
+
 	play: false,
 	disp: 0,
 	dt: 0.0018,
@@ -2037,6 +2094,14 @@ const settings = {
 			this.disp = 0;
 		}
 
+	},
+
+	stepSkeleton: function(t) {
+		let s = 100 * Math.abs(Math.sin(t / 1000) / 2);
+		sRenderer.computePositions(s);
+		skeleton.computeOffsets()
+		sRenderer.updateVertices();
+		sRenderer.updateEdges();
 	},
 
 	reset: function() {
@@ -2058,15 +2123,22 @@ simulationFolder.add(settings, "step");
 simulationFolder.add(settings, "reset");
 simulationFolder.add(settings, "volumeCompliance").min(0).max(10000).step(1); 
 simulationFolder.add(settings, "edgeCompliance").min(0).max(10).step(0.01); 
+simulationFolder.add(settings, "sphereId").min(0).max(bunny.nbCells(vertex) - 1).step(1).onChange(settings.updateSphere.bind(settings)); 
 
 
 let frameCount = 0;
+let t_1 = 0;
+let time = 0;
 function update (t)
 {
 	stats.update()
 	if(settings.play) {
-		settings.step();
+		time += (t - t_1);
+		settings.stepSkeleton(time);
+		// settings.step();
 	}
+	t_1 = t;
+
 }
 
 function render()
