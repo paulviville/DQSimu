@@ -1602,9 +1602,33 @@ const bunny = mapFromGeometry(geometry)
 
 const bunnyRenderer = new Renderer(bunny);
 bunnyRenderer.edges.create({size: 1}).addTo(scene);
-bunnyRenderer.volumes.create().addTo(scene);
-bunnyRenderer.volumes.rescale(0.8)
+// bunnyRenderer.volumes.create().addTo(scene);
+// bunnyRenderer.volumes.rescale(0.8)
 
+
+const vertex = bunny.vertex;
+const edge = bunny.edge;
+const volume = bunny.volume;
+
+bunny.createEmbedding(volume);
+bunny.setEmbeddings(volume);
+
+const position = bunny.getAttribute(vertex, "position");
+const positionInit = bunny.addAttribute(vertex, "positionInit");
+const prevPosition = bunny.addAttribute(vertex, "prevPosition");
+const invMass = bunny.addAttribute(vertex, "invMass");
+const velocity = bunny.addAttribute(vertex, "velocity");
+const gradient = bunny.addAttribute(vertex, "gradient");
+
+const edgeLength = bunny.addAttribute(edge, "edgeLength");
+const edgeRestLength = bunny.addAttribute(edge, "edgeRestLength");
+const tetVolume = bunny.addAttribute(volume, "tetVolume");
+const tetRestVolume = bunny.addAttribute(volume, "tetRestVolume");
+
+/// animation
+const weights = bunny.addAttribute(vertex, "weights");
+const bindPoints = bunny.addAttribute(vertex, "bindPoints");
+const bindDist = bunny.addAttribute(vertex, "bindDist");
 
 
 
@@ -1620,7 +1644,7 @@ const translationroot = new THREE.Quaternion(0, 0.25, 0, 0);
 const transformRoot = DualQuaternion.setFromRotationTranslation(new THREE.Quaternion, translationroot)
 const keyroot = new Key(0, transformRoot);
 
-const rotation1 = new THREE.Quaternion().setFromAxisAngle(worldUp, 1.0);
+const rotation1 = new THREE.Quaternion().setFromAxisAngle(worldUp, 2);
 const transform1 = DualQuaternion.setFromRotationTranslation(rotation1.clone(), translation.clone());
 transform1.normalize();
 const key1 = new Key(100, transform1);
@@ -1658,6 +1682,80 @@ sRenderer.createEdges();
 scene.add(sRenderer.vertices)
 scene.add(sRenderer.edges)
 
+function clamp(val, min, max) {
+	return Math.min(Math.max(val, min), max);
+}
+
+function projectOnBone(bone, p) {
+	let parent = skeleton.getParent(bone);
+	let b0 = skeleton.getWorldTransform(parent).transform(new THREE.Vector3);
+	let b1 = skeleton.getWorldTransform(bone).transform(new THREE.Vector3);
+
+	let b01 = b1.clone().sub(b0);
+	let n = b01.clone().normalize();
+	let b0p = p.clone().sub(b0);
+	let t = clamp(b0p.dot(b01) / b01.dot(b01), 0, 1);
+	b01.multiplyScalar(t).add(b0)
+	return b01;
+}
+
+function projectOnSkeleton(pos){
+		const projections = [];
+		skeleton.foreachBone(bone => {
+			if(skeleton.getParent(bone) == null)
+				return;
+	
+			const posB = projectOnBone(bone, pos);
+			projections.push({bone, posB});
+		});
+
+		projections.sort((a, b) => {
+			if(a.posB.distanceTo(pos) <= b.posB.distanceTo(pos))
+				return -1;
+			else 
+				return 1;
+		});
+
+		return projections[0];
+}
+
+
+/// bindings to the skeleton
+const bindGraph = new IncidenceGraph;
+bindGraph.createEmbedding(bindGraph.vertex);
+const bindPosition = bindGraph.addAttribute(bindGraph.vertex, "position");
+const bindInitPosition = bindGraph.addAttribute(bindGraph.vertex, "initPosition");
+const bindBone = bindGraph.addAttribute(bindGraph.vertex, "bone");
+
+
+function buildBinds() {
+	bunny.foreach(vertex, vd => {
+		const vid = bunny.cell(vertex, vd);
+		const posV = position[vid].clone();
+
+		const proj = projectOnSkeleton(posV);
+		console.log(posV, proj);
+		let v = bindGraph.addVertex();
+		bindPosition[v] = proj.posB.clone();
+		bindInitPosition[v] = proj.posB.clone();
+		bindBone[v] = proj.bone;
+
+		bindPoints[vid] = v;
+		bindDist[vid] = posV.distanceTo(proj.posB);
+	});
+	
+	
+}
+
+// projectOnSkeleton(position[0])
+
+buildBinds()
+console.log(bindBone, bindPosition, bindDist)
+
+
+
+
+
 
 
 
@@ -1675,26 +1773,6 @@ function computeHexVolume(p0, p1, p2, p3, p4, p5, p6, p7) {
 		 + computeTetVolume(p0, p7, p4, p6);
 }
 
-const vertex = bunny.vertex;
-const edge = bunny.edge;
-const volume = bunny.volume;
-
-bunny.createEmbedding(volume);
-bunny.setEmbeddings(volume);
-// bunny.foreach(volume, wd => {
-// 	console.log(bunny.cell(volume, wd));
-// })
-
-const position = bunny.getAttribute(vertex, "position");
-const positionInit = bunny.addAttribute(vertex, "positionInit");
-const prevPosition = bunny.addAttribute(vertex, "prevPosition");
-const invMass = bunny.addAttribute(vertex, "invMass");
-const velocity = bunny.addAttribute(vertex, "velocity");
-const gradient = bunny.addAttribute(vertex, "gradient");
-
-const edgeLength = bunny.addAttribute(edge, "edgeLength");
-const edgeRestLength = bunny.addAttribute(edge, "edgeRestLength");
-const tetRestVolume = bunny.addAttribute(volume, "tetRestVolume");
 
 
 /// initialization
@@ -1732,6 +1810,32 @@ bunny.foreach(volume, wd => {
 
 }, {useEmb: false});
 
+const weight0 = [{b: root, w: 0.75}, {b: bone0, w: 0.25}];
+const weight1 = [{b: bone0, w: 0.5}, {b: bone1, w: 0.5}];
+const weight2 = [{b: bone1, w: 0.5}, {b: bone2, w: 0.5}];
+const weight3 = [{b: bone2, w: 0.5}, {b: bone3, w: 0.5}];
+const weight4 = [{b: bone2, w: 0.25}, {b: bone3, w: 0.75}];
+
+
+/// set skeletal weights
+weights[0] = weight0; weights[1] = weight0; weights[2] = weight0; weights[3] = weight0;
+weights[4] = weight1; weights[5] = weight1; weights[6] = weight1; weights[7] = weight1;
+weights[8] = weight2; weights[9] = weight2; weights[10] = weight2; weights[11] = weight2;
+weights[12] = weight3; weights[13] = weight3; weights[14] = weight3; weights[15] = weight3;
+weights[16] = weight4; weights[17] = weight4; weights[18] = weight4; weights[19] = weight4;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // bunny.foreach(volume, wd => {
 // 	if(bunny.isBoundary(wd))
@@ -1768,24 +1872,35 @@ console.log(tetRestVolume)
 
 const gravity = new THREE.Vector3(0, -5, 0);
 
-// function computeEdgeLengths() {
-// 	bunny.foreach(bunny.edge, ed => {
-// 		const p0 = position[bunny.cell(vertex, ed)];
-// 		const p1 = position[bunny.cell(vertex, bunny.phi2[ed])];
+function computeEdgeLengths() {
+	bunny.foreach(bunny.edge, ed => {
+		const p0 = position[bunny.cell(vertex, ed)];
+		const p1 = position[bunny.cell(vertex, bunny.phi2[ed])];
 	
-// 		edgeLength[bunny.cell(bunny.edge, ed)] = p0.distanceTo(p1);
-// 	});
-// }
+		edgeLength[bunny.cell(bunny.edge, ed)] = (p0.distanceTo(p1) - edgeRestLength[bunny.cell(edge, ed)]) / edgeRestLength[bunny.cell(edge, ed)];
+	}, {useEmb: true});
+}
 
-// function computeVolumes() {
-// 	bunny.foreach(bunny.volume, wd => {
-// 		const p0 = position[bunny.cell(vertex, wd)];
-// 		const p1 = position[bunny.cell(vertex, bunny.phi_1[wd])];
-// 		const p2 = position[bunny.cell(vertex, bunny.phi1[wd])];
-// 		const p3 = position[bunny.cell(vertex, bunny.phi([2, -1], wd))];
-// 		tetRestVolume[bunny.cell(vertex, wd)] = computeTetVolume(p0, p1, p2, p3)
-// 	});
-// }
+function computeVolumes() {
+	bunny.foreach(bunny.volume, wd => {
+		if(bunny.isBoundary(wd))
+			return;
+
+		const p0 = position[bunny.cell(vertex, wd)];
+		const p1 = position[bunny.cell(vertex, bunny.phi_1[wd])];
+		const p2 = position[bunny.cell(vertex, bunny.phi1[wd])];
+		const p3 = position[bunny.cell(vertex, bunny.phi([2, -1], wd))];
+		tetVolume[bunny.cell(volume, wd)] = (computeTetVolume(p0, p1, p2, p3) - tetRestVolume[bunny.cell(volume, wd)]) / tetRestVolume[bunny.cell(volume, wd)]
+	},{useEmb: true});
+}
+
+window.testCompliance = function () {
+	computeVolumes();
+	computeEdgeLengths();
+
+	console.log(tetVolume, edgeLength)
+}
+
 
 function preSolve(dt) {
 	bunny.foreach(vertex, vd => {
@@ -1797,12 +1912,37 @@ function preSolve(dt) {
 		velocity[vid].addScaledVector(gravity, dt);
 		prevPosition[vid].copy(position[vid]);
 		position[vid].addScaledVector(velocity[vid], dt);
-		if(position[vid].y < 0.0) {
-			position[vid].copy(prevPosition[vid]);
-			position[vid].y = 0.0;
-		}
+		// if(position[vid].y < 0.0) {
+		// 	position[vid].copy(prevPosition[vid]);
+		// 	position[vid].y = 0.0;
+		// }
 
 	}, {useEmb: true});
+}
+
+function solveBinds(compliance, dt) {
+	const alpha = compliance / (dt * dt);
+	const grad = new THREE.Vector3;
+
+	bunny.foreach(vertex, vd => {
+		const vid = bunny.cell(vertex, vd);
+		const pos = position[vid];
+		const bindV = bindPoints[vid];
+		const bindPos = bindPosition[bindV];
+		// const dist = pos.distanceTo(bindPos);
+		grad.subVectors(pos, bindPos);
+		const length = grad.length();
+
+		if(length == 0.0)
+			return false;
+
+		const w = invMass[vid];
+		grad.multiplyScalar(1/length);
+		const c = length - bindDist[vid];
+		const s = -c / (w + alpha);
+		position[vid].addScaledVector(grad, s * w);
+
+	});
 }
 
 function solveEdges(compliance, dt) {
@@ -1973,6 +2113,7 @@ function solveHexVolumes(compliance, dt) {
 
 function solve(dt, volumeCompliance, edgeCompliance) {
 	solveEdges(edgeCompliance, dt);
+	solveBinds(0, dt);
 	solveVolumes(volumeCompliance, dt);
 
 
@@ -1985,7 +2126,7 @@ function postSolve(dt) {
 			return false;
 		position[vid].add(gradient[vid]);
 
-		velocity[vid].subVectors(position[vid], prevPosition[vid]).multiplyScalar(1/dt);
+		velocity[vid].subVectors(position[vid], prevPosition[vid]).multiplyScalar(1/dt).clampLength(0, 0.1);
 	}, {useEmb: true});
 }
 
@@ -2058,7 +2199,7 @@ scene.add(controlDQHelper)
 scene.add(controlDQHelper2)
 
 
-
+console.log(weights)
 
 const settings = {
 	updateMap : function () {
@@ -2097,11 +2238,43 @@ const settings = {
 	},
 
 	stepSkeleton: function(t) {
-		let s = 100 * Math.abs(Math.sin(t / 1000) / 2);
+		let s = 100 * Math.abs(Math.sin(t / 1000) / 3);
 		sRenderer.computePositions(s);
 		skeleton.computeOffsets()
 		sRenderer.updateVertices();
 		sRenderer.updateEdges();
+	},
+
+	stepBind: function() {
+		bindGraph.foreach(bindGraph.vertex, v => {
+			const bone = bindBone[v];
+			const off = skeleton.getOffset(bone);
+			const pb = bindInitPosition[v].clone();
+			const pdq = DualQuaternion.setFromTranslation(pb);
+			pdq.multiplyDualQuaternions(off, pdq);
+			bindPosition[v].copy(pdq.transform(new THREE.Vector3));
+
+		});
+	},
+
+	stepSkin: function(t) {
+		bunny.foreach(vertex, vd => {
+			const vid = bunny.cell(vertex, vd);
+			let pb = positionInit[vid].clone();
+			let dqBlend = new DualQuaternion(new THREE.Quaternion(0,0,0,0), new THREE.Quaternion(0,0,0,0));
+			for(let w = 0; w < weights[vid].length; ++w) {
+				let b = weights[vid][w];
+				let off = skeleton.getOffset(b.b);
+				dqBlend.addScaledDualQuaternion(off, b.w);
+			}
+			dqBlend.normalize();
+			let pdq = DualQuaternion.setFromTranslation(pb);
+			pdq.multiplyDualQuaternions(dqBlend, pdq)
+
+			position[vid].copy(pdq.transform(new THREE.Vector3));
+		});
+
+		this.updateDisplay()
 	},
 
 	reset: function() {
@@ -2134,8 +2307,10 @@ function update (t)
 	stats.update()
 	if(settings.play) {
 		time += (t - t_1);
-		settings.stepSkeleton(time);
-		// settings.step();
+		settings.stepSkeleton(time / 2);
+		settings.stepBind();
+		// settings.stepSkin(time);
+		settings.step();
 	}
 	t_1 = t;
 
