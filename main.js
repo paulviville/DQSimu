@@ -1549,25 +1549,178 @@ const sleeveHexData = {
 	],
 }
 
+const subdData = {
+	verts: [
+0.5, 0.25, 0.5,
+0.5, 0.25, -0.5,
+-0.5, 0.25, -0.5,
+-0.5, 1.25, -0.5,
+-0.5, 0.25, 0.5,
+-0.5, 1.25, 0.5,
+0.5, 1.25, 0.5,
+0.5, 1.25, -0.5,
+-0.5, 2.25, -0.5,
+-0.5, 2.25, 0.5,
+0.5, 2.25, 0.5,
+0.5, 2.25, -0.5,
+-0.5, 3.25, -0.5,
+-0.5, 3.25, 0.5,
+0.5, 3.25, 0.5,
+0.5, 3.25, -0.5,
+-0.5, 4.25, -0.5,
+-0.5, 4.25, 0.5,
+0.5, 4.25, 0.5,
+0.5, 4.25, -0.5,
+0, 0.5, -0.25,
+-0.25, 0.5, 0,
+-0.25, 0.75, 0.25,
+0.25, 1, 0,
+0.25, 0.75, -0.25,
+0, 1, 0.25,
+0, 1.5, -0.25,
+-0.25, 1.5, 0,
+-0.25, 1.75, 0.25,
+0.25, 2, 0,
+0.25, 1.75, -0.25,
+0, 2, 0.25,
+0, 2.5, -0.25,
+-0.25, 2.5, 0,
+-0.25, 2.75, 0.25,
+0.25, 3, 0,
+0.25, 2.75, -0.25,
+0, 3, 0.25,
+0, 3.5, -0.25,
+-0.25, 3.5, 0,
+-0.25, 3.75, 0.25,
+0.25, 4, 0,
+0.25, 3.75, -0.25,
+0, 4, 0.25,
+],
+	tetIds : [
+		0, 1, 2, 20,
+2, 3, 0, 20,
+1, 3, 2, 20,
+0, 3, 1, 20,
+0, 2, 4, 21,
+4, 3, 0, 21,
+2, 3, 4, 21,
+0, 3, 2, 21,
+0, 4, 5, 22,
+5, 3, 0, 22,
+4, 3, 5, 22,
+0, 3, 4, 22,
+0, 6, 7, 23,
+7, 3, 0, 23,
+6, 3, 7, 23,
+0, 3, 6, 23,
+0, 7, 1, 24,
+1, 3, 0, 24,
+7, 3, 1, 24,
+0, 3, 7, 24,
+0, 5, 6, 25,
+6, 3, 0, 25,
+5, 3, 6, 25,
+0, 3, 5, 25,
+6, 7, 3, 26,
+3, 8, 6, 26,
+7, 8, 3, 26,
+6, 8, 7, 26,
+6, 3, 5, 27,
+5, 8, 6, 27,
+3, 8, 5, 27,
+6, 8, 3, 27,
+6, 5, 9, 28,
+9, 8, 6, 28,
+5, 8, 9, 28,
+6, 8, 5, 28,
+6, 10, 11, 29,
+11, 8, 6, 29,
+10, 8, 11, 29,
+6, 8, 10, 29,
+6, 11, 7, 30,
+7, 8, 6, 30,
+11, 8, 7, 30,
+6, 8, 11, 30,
+6, 9, 10, 31,
+10, 8, 6, 31,
+9, 8, 10, 31,
+6, 8, 9, 31,
+10, 11, 8, 32,
+8, 12, 10, 32,
+11, 12, 8, 32,
+10, 12, 11, 32,
+10, 8, 9, 33,
+9, 12, 10, 33,
+8, 12, 9, 33,
+10, 12, 8, 33,
+10, 9, 13, 34,
+13, 12, 10, 34,
+9, 12, 13, 34,
+10, 12, 9, 34,
+10, 14, 15, 35,
+15, 12, 10, 35,
+14, 12, 15, 35,
+10, 12, 14, 35,
+10, 15, 11, 36,
+11, 12, 10, 36,
+15, 12, 11, 36,
+10, 12, 15, 36,
+10, 13, 14, 37,
+14, 12, 10, 37,
+13, 12, 14, 37,
+10, 12, 13, 37,
+14, 15, 12, 38,
+12, 16, 14, 38,
+15, 16, 12, 38,
+14, 16, 15, 38,
+14, 12, 13, 39,
+13, 16, 14, 39,
+12, 16, 13, 39,
+14, 16, 12, 39,
+14, 13, 17, 40,
+17, 16, 14, 40,
+13, 16, 17, 40,
+14, 16, 13, 40,
+14, 18, 19, 41,
+19, 16, 14, 41,
+18, 16, 19, 41,
+14, 16, 18, 41,
+14, 19, 15, 42,
+15, 16, 14, 42,
+19, 16, 15, 42,
+14, 16, 19, 42,
+14, 17, 18, 43,
+18, 16, 14, 43,
+17, 16, 18, 43,
+14, 16, 17, 43,
+]
+}
+
+
+
+
 const geometry = {v: [], tet: [], hex: []};
 // geometry.v.push(...bunnyData.verts);
 
-for(let i = 0; i < sleeveData.verts.length; i += 3) {
+for(let i = 0; i < subdData.verts.length; i += 3) {
 	const v = [	
-		sleeveData.verts[i] * 0.5,
-		sleeveData.verts[i+1]* 0.5 + 0.75,
-		sleeveData.verts[i+2]* 0.5
+		// subdData.verts[i] * 0.5,
+		// subdData.verts[i+1]* 0.5 + 0.75,
+		// subdData.verts[i+2]* 0.5
+		subdData.verts[i],
+		subdData.verts[i+1],
+		subdData.verts[i+2]
 	];
 
 	geometry.v.push(v);
 }
 
-for(let i = 0; i < sleeveData.tetIds.length; i += 4) {
+for(let i = 0; i < subdData.tetIds.length; i += 4) {
 	const tet = [
-		sleeveData.tetIds[i],
-		sleeveData.tetIds[i+1],
-		sleeveData.tetIds[i+2],
-		sleeveData.tetIds[i+3]
+		subdData.tetIds[i],
+		subdData.tetIds[i+1],
+		subdData.tetIds[i+2],
+		subdData.tetIds[i+3]
 	];
 
 	geometry.tet.push(tet);
@@ -1608,6 +1761,7 @@ bunnyRenderer.edges.create({size: 1}).addTo(scene);
 
 const vertex = bunny.vertex;
 const edge = bunny.edge;
+const face = bunny.face;
 const volume = bunny.volume;
 
 bunny.createEmbedding(volume);
@@ -1632,6 +1786,202 @@ const bindDist = bunny.addAttribute(vertex, "bindDist");
 
 
 
+
+// const divTetVerts = []
+// const divTets = [];
+
+// const vertId = bunny.addAttribute(vertex, "vertId");
+// const volId = bunny.addAttribute(volume, "volId");
+
+// let vert = 0;
+// bunny.foreach(vertex, vd => {
+// 	const vid = bunny.cell(vertex, vd);
+// 	vertId[vid] = vert++;
+// 	divTetVerts.push(position[vid].clone());
+// });
+
+// bunny.foreach(volume, wd => {
+// 	if(bunny.isBoundary(wd))
+// 		return false; 
+
+// 	const wid = bunny.cell(volume, wd);
+
+// 	const center = new THREE.Vector3;
+// 	let n = 0;
+// 	bunny.foreachIncident(vertex, volume, wd ,vd => {
+
+// 		++n;
+// 		center.add(position[bunny.cell(vertex, vd)]);
+
+// 	});
+// 	center.multiplyScalar(1 / n);
+// 	// const sphere = new THREE.Mesh(
+// 	// 	new THREE.SphereGeometry(0.05, 16, 16),
+// 	// 	new THREE.MeshLambertMaterial({color: 0x0000ff})
+// 	// );
+// 	// sphere.position.copy(center);
+// 	// scene.add(sphere)
+// 	volId[wid] = vert++;
+// 	divTetVerts.push(center.clone());
+
+// 	bunny.foreachIncident(face, volume, wd, fd => {
+// 		const v0 = vertId[bunny.cell(vertex, fd)];
+// 		const v1 = vertId[bunny.cell(vertex, bunny.phi_1[fd])];
+// 		const v2 = vertId[bunny.cell(vertex, bunny.phi1[fd])];
+// 		const v3 = volId[wid];
+
+// 		divTets.push([v0, v1, v2, v3])
+// 	});
+
+// })
+
+
+// console.log(divTetVerts)
+// console.log(divTets)
+
+// let str = `subdData = {
+// 	verts: [
+// `;
+
+// divTetVerts.forEach(p => {
+// 	str += `${p.x}, ${p.y}, ${p.z},\n`
+// })
+
+// str += `],
+// 	tetIds : [
+// 		`
+// divTets.forEach(tet => {
+// 	str += `${tet[0]}, ${tet[1]}, ${tet[2]}, ${tet[3]},\n`
+// })
+// str += `]
+// }`
+
+// console.log(str)
+
+const gridVerts = [];
+const gridTets = [];
+function generateGrid(ig, jg, kg) {
+	function gridId(i, j, k) {
+		return i + k*(ig+1) + j *(kg+1)*(ig+1);
+	}
+
+	const G0 = new THREE.Vector3(-2.5, 0.25, 2.5)
+	const X = new THREE.Vector3(1 / ig, 0, 0);
+	const Y = new THREE.Vector3(0, 4 / jg, 0);
+	const Z = new THREE.Vector3(0, 0, 1 / kg);
+
+	for(let j = 0; j < jg + 1; ++j) { /// Z
+	for(let k = 0; k < kg + 1; ++k) { /// Y
+		for(let i = 0; i < ig + 1; ++i) { /// X
+				const pos = G0.clone();
+				pos.addScaledVector(X, i);
+				pos.addScaledVector(Y, j);
+				pos.addScaledVector(Z, -k);
+				gridVerts.push(pos.x, pos.y, pos.z);
+			}
+		}	
+	}
+
+	for(let k = 0; k < kg; ++k) { /// Y
+		for(let j = 0; j < jg; ++j) { /// Z
+			for(let i = 0; i < ig; ++i) { /// X
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i+1, j, k),
+					gridId(i+1, j, k+1),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i+1, j, k+1),
+					gridId(i, j, k+1),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i, j, k+1),
+					gridId(i, j+1, k+1),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i, j+1, k),
+					gridId(i+1, j+1, k),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i+1, j+1, k),
+					gridId(i+1, j, k),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i, j+1, k+1),
+					gridId(i, j+1, k),
+					gridId(i+1, j+1, k+1)
+				);
+			}
+		}	
+	}
+
+	console.log(gridVerts);
+	console.log(gridTets)
+}
+generateGrid(3, 12, 3)
+
+// gridVerts.forEach(p => {
+
+// 	const sphere = new THREE.Mesh(
+// 		new THREE.SphereGeometry(0.05, 16, 16),
+// 		new THREE.MeshLambertMaterial({color: 0x0000ff})
+// 	);
+// 	sphere.position.copy(p)
+// 	scene.add(sphere)
+
+// })
+
+const geometry2 = {v: [], tet: [], hex: []};
+// geometry.v.push(...bunnyData.verts);
+
+for(let i = 0; i < gridVerts.length; i += 3) {
+	const v = [	
+		gridVerts[i],
+		gridVerts[i+1],
+		gridVerts[i+2]
+	];
+
+	geometry2.v.push(v);
+}
+
+for(let i = 0; i < gridTets.length; i += 4) {
+	const tet = [
+		gridTets[i],
+		gridTets[i+1],
+		gridTets[i+2],
+		gridTets[i+3]
+	];
+
+	geometry2.tet.push(tet);
+}
+
+console.log(geometry2)
+const testTet = mapFromGeometry(geometry2)
+
+const testTetRenderer = new Renderer(testTet);
+testTetRenderer.vertices.create({size: 0.05}).addTo(scene);
+testTetRenderer.edges.create({size: 1}).addTo(scene);
+testTetRenderer.volumes.create().addTo(scene);
+testTetRenderer.volumes.rescale(0.8)
+
+
+
+
+
+
+
+
+
 const worldY = new THREE.Vector3(0, 1, 0);
 const worldUp = new THREE.Vector3(0, 0, 1);
 
@@ -1644,7 +1994,7 @@ const translationroot = new THREE.Quaternion(0, 0.25, 0, 0);
 const transformRoot = DualQuaternion.setFromRotationTranslation(new THREE.Quaternion, translationroot)
 const keyroot = new Key(0, transformRoot);
 
-const rotation1 = new THREE.Quaternion().setFromAxisAngle(worldUp, 2);
+const rotation1 = new THREE.Quaternion().setFromAxisAngle(worldUp, Math.PI / 2);
 const transform1 = DualQuaternion.setFromRotationTranslation(rotation1.clone(), translation.clone());
 transform1.normalize();
 const key1 = new Key(100, transform1);
@@ -1666,10 +2016,10 @@ const bone3 = skeleton.newBone();
 skeleton.setParent(bone3, bone2);
 skeleton.addKey(bone3, key0);
 
-skeleton.addKey(bone0, key1);
-skeleton.addKey(bone1, key1);
+// skeleton.addKey(bone0, key1);
+// skeleton.addKey(bone1, key1);
 skeleton.addKey(bone2, key1);
-skeleton.addKey(bone3, key1);
+// skeleton.addKey(bone3, key1);
 
 
 skeleton.setBindTransforms();
@@ -2214,7 +2564,10 @@ const settings = {
 
 	sphereId : 0,
 	updateSphere : function () {
-		sphere.position.copy(position[this.sphereId])
+		let tetPos = testTet.getAttribute(vertex, "position");
+		sphere.position.copy(tetPos[this.sphereId])
+		// sphere.position.copy(position[this.sphereId])
+		console.log(sphere.position)
 	},
 
 	play: false,
@@ -2238,7 +2591,7 @@ const settings = {
 	},
 
 	stepSkeleton: function(t) {
-		let s = 100 * Math.abs(Math.sin(t / 1000) / 3);
+		let s = 100 * Math.abs(Math.sin(t / 2000));
 		sRenderer.computePositions(s);
 		skeleton.computeOffsets()
 		sRenderer.updateVertices();
