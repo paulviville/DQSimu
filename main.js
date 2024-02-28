@@ -1751,7 +1751,125 @@ for(let i = 0; i < subdData.tetIds.length; i += 4) {
 // 	geometry.hex.push(hex);
 // }
 
-const bunny = mapFromGeometry(geometry)
+
+const gridVerts = [];
+const gridTets = [];
+function generateGrid(ig, jg, kg) {
+	function gridId(i, j, k) {
+		return i + k*(ig+1) + j *(kg+1)*(ig+1);
+	}
+
+	const G0 = new THREE.Vector3(-0.375, 0.25, 0.375)
+	const X = new THREE.Vector3(0.75 / ig, 0, 0);
+	const Y = new THREE.Vector3(0, 3.5 / jg, 0);
+	const Z = new THREE.Vector3(0, 0, 0.75 / kg);
+
+	for(let j = 0; j < jg + 1; ++j) { /// Z
+	for(let k = 0; k < kg + 1; ++k) { /// Y
+		for(let i = 0; i < ig + 1; ++i) { /// X
+				const pos = G0.clone();
+				pos.addScaledVector(X, i);
+				pos.addScaledVector(Y, j);
+				pos.addScaledVector(Z, -k);
+				gridVerts.push(pos.x, pos.y, pos.z);
+			}
+		}	
+	}
+
+	for(let k = 0; k < kg; ++k) { /// Y
+		for(let j = 0; j < jg; ++j) { /// Z
+			for(let i = 0; i < ig; ++i) { /// X
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i+1, j, k),
+					gridId(i+1, j, k+1),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i+1, j, k+1),
+					gridId(i, j, k+1),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i, j, k+1),
+					gridId(i, j+1, k+1),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i, j+1, k),
+					gridId(i+1, j+1, k),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i+1, j+1, k),
+					gridId(i+1, j, k),
+					gridId(i+1, j+1, k+1)
+				);
+				gridTets.push(
+					gridId(i, j, k),
+					gridId(i, j+1, k+1),
+					gridId(i, j+1, k),
+					gridId(i+1, j+1, k+1)
+				);
+			}
+		}	
+	}
+
+	console.log(gridVerts);
+	console.log(gridTets)
+}
+generateGrid(3, 14, 3)
+
+// gridVerts.forEach(p => {
+
+// 	const sphere = new THREE.Mesh(
+// 		new THREE.SphereGeometry(0.05, 16, 16),
+// 		new THREE.MeshLambertMaterial({color: 0x0000ff})
+// 	);
+// 	sphere.position.copy(p)
+// 	scene.add(sphere)
+
+// })
+
+const geometry2 = {v: [], tet: [], hex: []};
+// geometry.v.push(...bunnyData.verts);
+
+for(let i = 0; i < gridVerts.length; i += 3) {
+	const v = [	
+		gridVerts[i],
+		gridVerts[i+1],
+		gridVerts[i+2]
+	];
+
+	geometry2.v.push(v);
+}
+
+for(let i = 0; i < gridTets.length; i += 4) {
+	const tet = [
+		gridTets[i],
+		gridTets[i+1],
+		gridTets[i+2],
+		gridTets[i+3]
+	];
+
+	geometry2.tet.push(tet);
+}
+
+console.log(geometry2)
+// const testTet = mapFromGeometry(geometry2)
+
+// const testTetRenderer = new Renderer(testTet);
+// testTetRenderer.vertices.create({size: 0.05}).addTo(scene);
+// testTetRenderer.edges.create({size: 1}).addTo(scene);
+// testTetRenderer.volumes.create().addTo(scene);
+// testTetRenderer.volumes.rescale(0.8)
+
+
+const bunny = mapFromGeometry(geometry2)
 
 const bunnyRenderer = new Renderer(bunny);
 bunnyRenderer.edges.create({size: 1}).addTo(scene);
@@ -1858,121 +1976,6 @@ const bindDist = bunny.addAttribute(vertex, "bindDist");
 
 // console.log(str)
 
-const gridVerts = [];
-const gridTets = [];
-function generateGrid(ig, jg, kg) {
-	function gridId(i, j, k) {
-		return i + k*(ig+1) + j *(kg+1)*(ig+1);
-	}
-
-	const G0 = new THREE.Vector3(-2.5, 0.25, 2.5)
-	const X = new THREE.Vector3(1 / ig, 0, 0);
-	const Y = new THREE.Vector3(0, 4 / jg, 0);
-	const Z = new THREE.Vector3(0, 0, 1 / kg);
-
-	for(let j = 0; j < jg + 1; ++j) { /// Z
-	for(let k = 0; k < kg + 1; ++k) { /// Y
-		for(let i = 0; i < ig + 1; ++i) { /// X
-				const pos = G0.clone();
-				pos.addScaledVector(X, i);
-				pos.addScaledVector(Y, j);
-				pos.addScaledVector(Z, -k);
-				gridVerts.push(pos.x, pos.y, pos.z);
-			}
-		}	
-	}
-
-	for(let k = 0; k < kg; ++k) { /// Y
-		for(let j = 0; j < jg; ++j) { /// Z
-			for(let i = 0; i < ig; ++i) { /// X
-				gridTets.push(
-					gridId(i, j, k),
-					gridId(i+1, j, k),
-					gridId(i+1, j, k+1),
-					gridId(i+1, j+1, k+1)
-				);
-				gridTets.push(
-					gridId(i, j, k),
-					gridId(i+1, j, k+1),
-					gridId(i, j, k+1),
-					gridId(i+1, j+1, k+1)
-				);
-				gridTets.push(
-					gridId(i, j, k),
-					gridId(i, j, k+1),
-					gridId(i, j+1, k+1),
-					gridId(i+1, j+1, k+1)
-				);
-				gridTets.push(
-					gridId(i, j, k),
-					gridId(i, j+1, k),
-					gridId(i+1, j+1, k),
-					gridId(i+1, j+1, k+1)
-				);
-				gridTets.push(
-					gridId(i, j, k),
-					gridId(i+1, j+1, k),
-					gridId(i+1, j, k),
-					gridId(i+1, j+1, k+1)
-				);
-				gridTets.push(
-					gridId(i, j, k),
-					gridId(i, j+1, k+1),
-					gridId(i, j+1, k),
-					gridId(i+1, j+1, k+1)
-				);
-			}
-		}	
-	}
-
-	console.log(gridVerts);
-	console.log(gridTets)
-}
-generateGrid(3, 12, 3)
-
-// gridVerts.forEach(p => {
-
-// 	const sphere = new THREE.Mesh(
-// 		new THREE.SphereGeometry(0.05, 16, 16),
-// 		new THREE.MeshLambertMaterial({color: 0x0000ff})
-// 	);
-// 	sphere.position.copy(p)
-// 	scene.add(sphere)
-
-// })
-
-const geometry2 = {v: [], tet: [], hex: []};
-// geometry.v.push(...bunnyData.verts);
-
-for(let i = 0; i < gridVerts.length; i += 3) {
-	const v = [	
-		gridVerts[i],
-		gridVerts[i+1],
-		gridVerts[i+2]
-	];
-
-	geometry2.v.push(v);
-}
-
-for(let i = 0; i < gridTets.length; i += 4) {
-	const tet = [
-		gridTets[i],
-		gridTets[i+1],
-		gridTets[i+2],
-		gridTets[i+3]
-	];
-
-	geometry2.tet.push(tet);
-}
-
-console.log(geometry2)
-const testTet = mapFromGeometry(geometry2)
-
-const testTetRenderer = new Renderer(testTet);
-testTetRenderer.vertices.create({size: 0.05}).addTo(scene);
-testTetRenderer.edges.create({size: 1}).addTo(scene);
-testTetRenderer.volumes.create().addTo(scene);
-testTetRenderer.volumes.rescale(0.8)
 
 
 
@@ -1990,11 +1993,11 @@ const rotation = new THREE.Quaternion().setFromAxisAngle(worldY, 0);
 const transform = DualQuaternion.setFromRotationTranslation(rotation.clone(), translation.clone());
 const key0 = new Key(0, transform);
 
-const translationroot = new THREE.Quaternion(0, 0.25, 0, 0);
+const translationroot = new THREE.Quaternion(0, 0.5, 0, 0);
 const transformRoot = DualQuaternion.setFromRotationTranslation(new THREE.Quaternion, translationroot)
 const keyroot = new Key(0, transformRoot);
 
-const rotation1 = new THREE.Quaternion().setFromAxisAngle(worldUp, Math.PI / 2);
+const rotation1 = new THREE.Quaternion().setFromAxisAngle(worldUp, Math.PI / 3.6);
 const transform1 = DualQuaternion.setFromRotationTranslation(rotation1.clone(), translation.clone());
 transform1.normalize();
 const key1 = new Key(100, transform1);
@@ -2012,12 +2015,12 @@ skeleton.addKey(bone1, key0);
 const bone2 = skeleton.newBone();
 skeleton.setParent(bone2, bone1);
 skeleton.addKey(bone2, key0);
-const bone3 = skeleton.newBone();
-skeleton.setParent(bone3, bone2);
-skeleton.addKey(bone3, key0);
+// const bone3 = skeleton.newBone();
+// skeleton.setParent(bone3, bone2);
+// skeleton.addKey(bone3, key0);
 
-// skeleton.addKey(bone0, key1);
-// skeleton.addKey(bone1, key1);
+skeleton.addKey(bone0, key1);
+skeleton.addKey(bone1, key1);
 skeleton.addKey(bone2, key1);
 // skeleton.addKey(bone3, key1);
 
@@ -2160,19 +2163,19 @@ bunny.foreach(volume, wd => {
 
 }, {useEmb: false});
 
-const weight0 = [{b: root, w: 0.75}, {b: bone0, w: 0.25}];
-const weight1 = [{b: bone0, w: 0.5}, {b: bone1, w: 0.5}];
-const weight2 = [{b: bone1, w: 0.5}, {b: bone2, w: 0.5}];
-const weight3 = [{b: bone2, w: 0.5}, {b: bone3, w: 0.5}];
-const weight4 = [{b: bone2, w: 0.25}, {b: bone3, w: 0.75}];
+// const weight0 = [{b: root, w: 0.75}, {b: bone0, w: 0.25}];
+// const weight1 = [{b: bone0, w: 0.5}, {b: bone1, w: 0.5}];
+// const weight2 = [{b: bone1, w: 0.5}, {b: bone2, w: 0.5}];
+// // const weight3 = [{b: bone2, w: 0.5}, {b: bone3, w: 0.5}];
+// // const weight4 = [{b: bone2, w: 0.25}, {b: bone3, w: 0.75}];
 
 
-/// set skeletal weights
-weights[0] = weight0; weights[1] = weight0; weights[2] = weight0; weights[3] = weight0;
-weights[4] = weight1; weights[5] = weight1; weights[6] = weight1; weights[7] = weight1;
-weights[8] = weight2; weights[9] = weight2; weights[10] = weight2; weights[11] = weight2;
-weights[12] = weight3; weights[13] = weight3; weights[14] = weight3; weights[15] = weight3;
-weights[16] = weight4; weights[17] = weight4; weights[18] = weight4; weights[19] = weight4;
+// /// set skeletal weights
+// weights[0] = weight0; weights[1] = weight0; weights[2] = weight0; weights[3] = weight0;
+// weights[4] = weight1; weights[5] = weight1; weights[6] = weight1; weights[7] = weight1;
+// weights[8] = weight2; weights[9] = weight2; weights[10] = weight2; weights[11] = weight2;
+// weights[12] = weight3; weights[13] = weight3; weights[14] = weight3; weights[15] = weight3;
+// weights[16] = weight4; weights[17] = weight4; weights[18] = weight4; weights[19] = weight4;
 
 
 
@@ -2254,6 +2257,9 @@ window.testCompliance = function () {
 
 function preSolve(dt) {
 	bunny.foreach(vertex, vd => {
+		// if(!bunny.isBoundaryCell(vertex, vd))
+		// 	return false;
+		
 		const vid = bunny.cell(vertex, vd);
 
 		if(invMass[vid] == 0.0)
@@ -2262,10 +2268,10 @@ function preSolve(dt) {
 		velocity[vid].addScaledVector(gravity, dt);
 		prevPosition[vid].copy(position[vid]);
 		position[vid].addScaledVector(velocity[vid], dt);
-		// if(position[vid].y < 0.0) {
-		// 	position[vid].copy(prevPosition[vid]);
-		// 	position[vid].y = 0.0;
-		// }
+		if(position[vid].y < -0.0) {
+			position[vid].copy(prevPosition[vid]);
+			position[vid].y = 0.0;
+		}
 
 	}, {useEmb: true});
 }
@@ -2583,7 +2589,7 @@ const settings = {
 			postSolve(this.dt);
 		}
 
-		if(this.disp++ == 0) {
+		if(this.disp++ == 1) {
 			this.updateDisplay();
 			this.disp = 0;
 		}
