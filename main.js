@@ -12,6 +12,12 @@ import Renderer from './CMapJS/Rendering/Renderer.js';
 import {mapFromGeometry} from './CMapJS/IO/VolumesFormats/CMap3IO.js';
 import Stats from './CMapJS/Libs/stats.module.js';
 
+import handTet from './handTet.js'
+import bunnyTet from './bunnyTet.js'
+import { exportTet, loadTet } from './CMapJS/IO/VolumesFormats/Tet.js';
+import dragonTet from './dragonTet.js';
+import ballTet from './ballTet.js';
+import icosahedronTet from './icosahedronTet.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff);
@@ -1455,35 +1461,42 @@ const dragonData =
 };
 
 
+const geometry3 = loadTet(ballTet);
+console.log(geometry3);
+
 const geometry = {v: [], tet: []};
 // geometry.v.push(...bunnyData.verts);
 
-for(let i = 0; i < bunnyData.verts.length; i += 3) {
+for(let i = 0; i < dragonData.verts.length; i += 3) {
 	const v = [	
-		bunnyData.verts[i],
-		bunnyData.verts[i+1],
-		bunnyData.verts[i+2]
+		dragonData.verts[i],
+		dragonData.verts[i+1],
+		dragonData.verts[i+2]
 	];
 
 	geometry.v.push(v);
 }
 
-for(let i = 0; i < bunnyData.tetIds.length; i += 4) {
+for(let i = 0; i < dragonData.tetIds.length; i += 4) {
 	const tet = [
-		bunnyData.tetIds[i],
-		bunnyData.tetIds[i+1],
-		bunnyData.tetIds[i+2],
-		bunnyData.tetIds[i+3]
+		dragonData.tetIds[i],
+		dragonData.tetIds[i+1],
+		dragonData.tetIds[i+2],
+		dragonData.tetIds[i+3]
 	];
 
 	geometry.tet.push(tet);
 }
 
-const bunny = mapFromGeometry(geometry)
+// const tetStr = exportTet(geometry)
+// console.log(tetStr)
+
+const bunny = mapFromGeometry(geometry3)
 
 const bunnyRenderer = new Renderer(bunny);
-bunnyRenderer.edges.create({size: 0.35}).addTo(scene);
-// bunnyRenderer.faces.create().addTo(scene);
+// bunnyRenderer.vertices.create({size: 0.0035, color: new THREE.Color(0x00ff00)}).addTo(scene);
+bunnyRenderer.edges.create({size: 0.25}).addTo(scene);
+// bunnyRenderer.volumes.create().addTo(scene);
 
 
 function computeTetVolume(p0, p1, p2, p3) {
@@ -1492,6 +1505,7 @@ function computeTetVolume(p0, p1, p2, p3) {
 
 const vertex = bunny.vertex;
 const edge = bunny.edge;
+const face = bunny.face;
 const volume = bunny.volume;
 
 bunny.createEmbedding(volume);
@@ -1512,9 +1526,57 @@ const tetVolume = bunny.addAttribute(volume, "tetVolume");
 const tetRestVolume = bunny.addAttribute(volume, "tetRestVolume");
 
 
+const boundaryGraph = new IncidenceGraph
+// boundaryGraph.createEmbedding(vertex);
+
+const positionGraph = boundaryGraph.addAttribute(boundaryGraph.vertex, "position");
+
+const vertexBoundaryCache = []
+const faceBoundaryCache = []
+const volumeBoundaryCache = []
+// bunny.foreach(vertex, vd => {
+// 	if(bunny.isBoundaryCell(vertex, vd))
+// 		vertexBoundaryCache.push(vd);
+
+
+	
+// });
+
+bunny.foreach(volume, wd => {
+	if(bunny.isBoundary(wd))
+		volumeBoundaryCache.push(wd);
+	
+	if(bunny.isBoundary(wd)){
+		bunny.foreachIncident(vertex, volume, wd, vd => {
+			vertexBoundaryCache.push(vd)
+			// const vid = bunny.cell(vertex, vd);
+			// let v = boundaryGraph.addVertex();
+			// positionGraph[v] = position[vid].clone()
+		});
+		bunny.foreachIncident(face, volume, wd, fd => {
+			faceBoundaryCache.push(fd)
+			// const vid = bunny.cell(vertex, vd);
+			// let v = boundaryGraph.addVertex();
+			// positionGraph[v] = position[vid].clone()
+		});
+
+	}
+});
+
+
+console.log(bunny.nbCells(volume))
+console.log(vertexBoundaryCache)
+console.log(faceBoundaryCache)
+console.log(volumeBoundaryCache)
+
+// const graphRenderer = new Renderer(boundaryGraph)
+// graphRenderer.vertices.create().addTo(scene)
+
+
+
 /// initialization
 bunny.foreach(vertex, vd => {
-	position[bunny.cell(vertex, vd)];
+	position[bunny.cell(vertex, vd)].y += 1;
 	positionInit[bunny.cell(vertex, vd)] = position[bunny.cell(vertex, vd)].clone();
 	prevPosition[bunny.cell(vertex, vd)] = new THREE.Vector3;
 	invMass[bunny.cell(vertex, vd)] = 0;
@@ -1587,6 +1649,7 @@ function preSolve(dt) {
 
 	}, {useEmb: true});
 }
+
 
 function solveEdges(compliance, dt) {
 	const alpha = compliance / (dt * dt);
@@ -1769,13 +1832,13 @@ const settings = {
 	edgeCompliance: 0,
 	step: function() {
 
-		for(let i = 0; i < 5; ++i) {
+		for(let i = 0; i < 2; ++i) {
 			preSolve(this.dt);
 			solve(this.dt, this.volumeCompliance, this.edgeCompliance);
 			postSolve(this.dt);
 		}
 
-		if(this.disp++ == 2) {
+		if(this.disp++ == 0) {
 			this.updateDisplay();
 			this.disp = 0;
 		}
@@ -1799,7 +1862,7 @@ simulationFolder.add(settings, "play");
 simulationFolder.add(settings, "step");
 simulationFolder.add(settings, "reset");
 simulationFolder.add(settings, "volumeCompliance").min(0).max(10000).step(1); 
-simulationFolder.add(settings, "edgeCompliance").min(0).max(1000).step(1); 
+simulationFolder.add(settings, "edgeCompliance").min(0).max(10).step(0.01); 
 
 
 let frameCount = 0;
