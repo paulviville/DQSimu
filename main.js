@@ -19,6 +19,7 @@ import dragonTet from './dragonTet.js';
 // import ballTet from './ballTet.js';
 import ballTet from './ballTet2.js';
 import icosahedronTet from './icosahedronTet.js';
+import icosahedronTet2 from './icosahedronTet2.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff);
@@ -51,33 +52,122 @@ window.camPos = function() {
 }
 
 
+
+
+const A = new THREE.Vector3(-1, -1, 1)
+const B = new THREE.Vector3(-1, 1, -1)
+const C = new THREE.Vector3(1, 1, 1);
+const P = new THREE.Vector3(1.9, 0.1, -0.2);
+
+const testGraph = new IncidenceGraph;
+testGraph.createEmbedding(testGraph.vertex);
+const testPos = testGraph.addAttribute(testGraph.vertex, "position");
+const vA = testGraph.addVertex()
+testPos[vA] = A
+const vB = testGraph.addVertex()
+testPos[vB] = B
+const vC = testGraph.addVertex()
+testPos[vC] = C
+
+const vP = testGraph.addVertex()
+testPos[vP] = P
+
+const eAB = testGraph.addEdge(vA, vB)
+const eAP = testGraph.addEdge(vA, vP)
+const eAC = testGraph.addEdge(vA, vC)
+const eBC = testGraph.addEdge(vC, vB)
+
+const fABC = testGraph.addFace(eAB, eAC, eBC);
+
+
+
+// const AP = P.clone().sub(A);
+// const AB = B.clone().sub(A);
+// const AC = C.clone().sub(A);
+// const N = AB.clone().cross(AC).normalize();
+
+// const P2 = P.clone().addScaledVector(N, -AP.dot(N));
+const vP2 = testGraph.addVertex()
+// testPos[vP2] = P2
+
+// const PA = A.clone().addScaledVector(AB, AB.dot(AP) /AB.dot(AB));
+// const vPA = testGraph.addVertex()
+// testPos[vPA] = PA
+
+// const PB = A.clone().addScaledVector(AC, AC.dot(AP) /AC.dot(AC));
+// const vPB = testGraph.addVertex()
+// testPos[vPB] = PB
+
+
+
+function barycentricCoordinates(A, B, C, P) {
+	const AB = B.clone().sub(A);
+	const AC = C.clone().sub(A);
+	const AP = P.clone().sub(A);
+
+	const d00 = AB.dot(AB);
+	const d01 = AB.dot(AC);
+	const d11 = AC.dot(AC);
+	const d20 = AP.dot(AB);
+	const d21 = AP.dot(AC);
+	const denom = d00 * d11 - d01 * d01;
+
+	const bary = new THREE.Vector3();
+	bary.y = (d11 * d20 - d01 * d21) / denom;
+	bary.z = (d00 * d21 - d01 * d20) / denom;
+	bary.x = 1.0 - bary.y - bary.z;
+	console.log(bary)
+	return bary;
+}
+
+function projectionOnTriangle(A, B, C, P) {
+	const bary = barycentricCoordinates(A, B, C, P);
+	const P2 = A.clone().multiplyScalar(bary.x);
+	P2.addScaledVector(B, bary.y);
+	P2.addScaledVector(C, bary.z);
+
+	return P2;
+}
+
+testPos[vP2] = projectionOnTriangle(A, B, C, P);
+
+const testRenderer = new Renderer(testGraph);
+testRenderer.vertices.create({size: 0.05}).addTo(scene);
+testRenderer.edges.create({size: 2}).addTo(scene);
+testRenderer.faces.create({transparent: true, opacity: 0.5, side: THREE.DoubleSide}).addTo(scene);
+
+
+
+// console.log(bary)
+// testPos[vP2].set(0, 0, 0).addScaledVector(A, bary.x).addScaledVector(B, bary.y).addScaledVector(C, bary.z)
+
 const stats = new Stats()
 document.body.appendChild( stats.dom );
 
 
-const geometry = loadTet(ballTet);
+const geometry = loadTet(icosahedronTet2);
 console.log(geometry);
 
-const geometry2 = {v: [], tet: []};
+// const geometry2 = {v: [], tet: []};
 
-geometry.v.forEach(v => {
-	geometry2.v.push([...v]);
-})
-geometry.v.forEach(v => {
-	geometry2.v.push([v[0], v[1] + 1, v[2]]);
-})
-
-
-geometry.tet.forEach(v => {
-	geometry2.tet.push([v[0], v[1], v[2], v[3]]);
-})
-geometry.tet.forEach(v => {
-	geometry2.tet.push([v[0] + 125, v[1] + 125, v[2] + 125, v[3] + 125]);
-})
+// geometry.v.forEach(v => {
+// 	geometry2.v.push([...v]);
+// })
+// geometry.v.forEach(v => {
+// 	geometry2.v.push([v[0], v[1] + 1, v[2]]);
+// })
 
 
-console.log(geometry2);
-console.log(exportTet(geometry2))
+// geometry.tet.forEach(v => {
+// 	geometry2.tet.push([v[0], v[1], v[2], v[3]]);
+// })
+// geometry.tet.forEach(v => {
+// 	geometry2.tet.push([v[0] + 12, v[1] + 12, v[2] + 12, v[3] + 12]);
+// })
+
+
+// console.log(geometry2);
+// console.log(exportTet(geometry2))
 
 const bunny = mapFromGeometry(geometry)
 
@@ -409,7 +499,7 @@ const settings = {
 	
 	updateDisplay : function () {
 		bunnyRenderer.edges.update();
-		// bunnyRenderer.faces.update();
+		// bunnyRenderer.volumes.update();
 
 	},
 
