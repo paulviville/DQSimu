@@ -54,14 +54,18 @@ window.camPos = function() {
 
 
 
-const A = new THREE.Vector3(-1, -1, 1)
-const B = new THREE.Vector3(-1, 1, -1)
-const C = new THREE.Vector3(1, 1, 1);
-const P = new THREE.Vector3(1.9, 0.1, -0.2);
+const A = new THREE.Vector3(Math.sqrt(3)/2, 1, -0.5)
+const B = new THREE.Vector3(-Math.sqrt(3)/2, 1, -0.5);
+const C = new THREE.Vector3(0, 1, 1)
+const P = new THREE.Vector3(0.25, 3, 1.075);
+const P3 = new THREE.Vector3(1.5, 3, -1.5);
+// const P = new THREE.Vector3(-1, 3, -1.);
 
 const testGraph = new IncidenceGraph;
 testGraph.createEmbedding(testGraph.vertex);
 const testPos = testGraph.addAttribute(testGraph.vertex, "position");
+const testPrevPos = testGraph.addAttribute(testGraph.vertex, "previousPosition");
+const testVel = testGraph.addAttribute(testGraph.vertex, "velocity");
 const vA = testGraph.addVertex()
 testPos[vA] = A
 const vB = testGraph.addVertex()
@@ -81,6 +85,33 @@ const fABC = testGraph.addFace(eAB, eAC, eBC);
 
 
 
+const sphereMarker = new THREE.Mesh(
+	new THREE.SphereBufferGeometry(0.01, 32, 32),
+	new THREE.MeshLambertMaterial({color: 0x0000ff})
+)
+scene.add(sphereMarker)
+
+const sphereMarker2 = new THREE.Mesh(
+	new THREE.SphereBufferGeometry(0.01, 32, 32),
+	new THREE.MeshLambertMaterial({color: 0xFF00ff})
+)
+scene.add(sphereMarker2)
+
+const sphereMarker3= new THREE.Mesh(
+	new THREE.SphereBufferGeometry(0.01, 32, 32),
+	new THREE.MeshLambertMaterial({color: 0xff0000})
+)
+scene.add(sphereMarker3)
+
+testVel[vA] = new THREE.Vector3
+testVel[vB] = new THREE.Vector3
+testVel[vC] = new THREE.Vector3
+testVel[vP] = new THREE.Vector3
+
+testPrevPos[vA] = testPos[vA].clone()
+testPrevPos[vB] = testPos[vB].clone()
+testPrevPos[vC] = testPos[vC].clone()
+testPrevPos[vP] = testPos[vP].clone()
 // const AP = P.clone().sub(A);
 // const AB = B.clone().sub(A);
 // const AC = C.clone().sub(A);
@@ -88,7 +119,10 @@ const fABC = testGraph.addFace(eAB, eAC, eBC);
 
 // const P2 = P.clone().addScaledVector(N, -AP.dot(N));
 const vP2 = testGraph.addVertex()
-// testPos[vP2] = P2
+const vP3 = testGraph.addVertex()
+testPos[vP3] = P3
+
+
 
 // const PA = A.clone().addScaledVector(AB, AB.dot(AP) /AB.dot(AB));
 // const vPA = testGraph.addVertex()
@@ -116,7 +150,6 @@ function barycentricCoordinates(A, B, C, P) {
 	bary.y = (d11 * d20 - d01 * d21) / denom;
 	bary.z = (d00 * d21 - d01 * d20) / denom;
 	bary.x = 1.0 - bary.y - bary.z;
-	console.log(bary)
 	return bary;
 }
 
@@ -131,10 +164,70 @@ function projectionOnTriangle(A, B, C, P) {
 
 testPos[vP2] = projectionOnTriangle(A, B, C, P);
 
+function triangleNormal(A, B, C) {
+	return B.clone().sub(A).cross(C.clone().sub(A)).normalize();
+}
+// console.log(P.distanceTo(testPos[vP2]))
+function signedDistanceToTriangle(A, B, C, P) {
+	const N = triangleNormal(A, B, C);
+
+	const P2 = projectionOnTriangle(A, B, C, P);
+
+	return N.dot(P.clone().sub(P2))
+}
+
+function clamp(val, min, max) {
+	return Math.max(min, Math.min(val, max));
+}
+
+function closestPointOnTriangle(A, B, C, P) {
+	const bary = barycentricCoordinates(A, B, C, P);
+
+	if(bary.x < 0) {
+		const BC = C.clone().sub(B);
+		const BP = P.clone().sub(B);
+		const d = BC.length();		
+		return B.clone().addScaledVector(BC, clamp(BP.dot(BC) / d, 0, d) / d);
+	}
+	if(bary.y < 0) {
+		const AC = C.clone().sub(A);
+		const AP = P.clone().sub(A);
+		const d = AC.length();		
+		return A.clone().addScaledVector(AC, clamp(AP.dot(AC) / d, 0, d) / d);
+	}
+	if(bary.z < 0) {
+		const AB = B.clone().sub(A);
+		const AP = P.clone().sub(A);
+		const d = AB.length();		
+		return A.clone().addScaledVector(AB, clamp(AP.dot(AB) / d, 0, d) / d);
+	}
+
+	return A.clone().multiplyScalar(bary.x).addScaledVector(B, bary.y).addScaledVector(C, bary.z);
+}
+
+console.log(barycentricCoordinates(A, B, C, P))
+
+signedDistanceToTriangle(A, B, C, P);
+
+
+testPos[vP3].copy(closestPointOnTriangle(A, B, C, P))
+
+
+
+
+
+
+
+
 const testRenderer = new Renderer(testGraph);
-testRenderer.vertices.create({size: 0.05}).addTo(scene);
-testRenderer.edges.create({size: 2}).addTo(scene);
-testRenderer.faces.create({transparent: true, opacity: 0.5, side: THREE.DoubleSide}).addTo(scene);
+// testRenderer.vertices.create({size: 0.05}).addTo(scene);
+// testRenderer.edges.create({size: 2}).addTo(scene);
+// testRenderer.faces.create({transparent: true, opacity: 0.5, side: THREE.DoubleSide}).addTo(scene);
+
+
+
+
+
 
 
 
@@ -172,8 +265,8 @@ console.log(geometry);
 const bunny = mapFromGeometry(geometry)
 
 const bunnyRenderer = new Renderer(bunny);
-// bunnyRenderer.vertices.create({size: 0.0035, color: new THREE.Color(0x00ff00)}).addTo(scene);
-bunnyRenderer.edges.create({size: 0.25}).addTo(scene);
+// bunnyRenderer.vertices.create({size: 0.035, color: new THREE.Color(0x00ff00)}).addTo(scene);
+bunnyRenderer.edges.create({size: 1}).addTo(scene);
 // bunnyRenderer.volumes.create().addTo(scene);
 
 
@@ -204,10 +297,10 @@ const tetVolume = bunny.addAttribute(volume, "tetVolume");
 const tetRestVolume = bunny.addAttribute(volume, "tetRestVolume");
 
 
-const boundaryGraph = new IncidenceGraph
+// const boundaryGraph = new IncidenceGraph
 // boundaryGraph.createEmbedding(vertex);
 
-const positionGraph = boundaryGraph.addAttribute(boundaryGraph.vertex, "position");
+// const positionGraph = boundaryGraph.addAttribute(boundaryGraph.vertex, "position");
 
 const vertexBoundaryCache = []
 const faceBoundaryCache = []
@@ -232,7 +325,8 @@ bunny.foreach(volume, wd => {
 			// positionGraph[v] = position[vid].clone()
 		});
 		bunny.foreachIncident(face, volume, wd, fd => {
-			faceBoundaryCache.push(fd)
+			// faceBoundaryCache.push(fd)
+			faceBoundaryCache.push(bunny.phi3[fd])
 			// const vid = bunny.cell(vertex, vd);
 			// let v = boundaryGraph.addVertex();
 			// positionGraph[v] = position[vid].clone()
@@ -242,10 +336,24 @@ bunny.foreach(volume, wd => {
 });
 
 
-console.log(bunny.nbCells(volume))
-console.log(vertexBoundaryCache)
-console.log(faceBoundaryCache)
-console.log(volumeBoundaryCache)
+
+console.log(faceBoundaryCache, vertexBoundaryCache, volumeBoundaryCache)
+
+
+bunny.foreachIncident(vertex, volume, volumeBoundaryCache[0], vd => {
+	// position[bunny.cell(vertex, vd)].y -= 1;
+	position[bunny.cell(vertex, vd)].applyAxisAngle(new THREE.Vector3(1, 0, 1).normalize(), Math.PI / 12)
+	// position[bunny.cell(vertex, vd)].y += 1;
+
+});
+
+bunny.foreachIncident(vertex, volume, volumeBoundaryCache[1], vd => {
+	position[bunny.cell(vertex, vd)].y -= 1;
+	position[bunny.cell(vertex, vd)].applyAxisAngle(new THREE.Vector3(-1, 0, 1).normalize(), Math.PI / 6)
+
+	position[bunny.cell(vertex, vd)].y += 1;
+});
+
 
 // const graphRenderer = new Renderer(boundaryGraph)
 // graphRenderer.vertices.create().addTo(scene)
@@ -262,6 +370,7 @@ bunny.foreach(vertex, vd => {
 }, {useEmb: true});
 
 bunnyRenderer.edges.update()
+bunnyRenderer.vertices.update()
 
 bunny.foreach(edge, ed => {
 	const p0 = position[bunny.cell(vertex, ed)];
@@ -286,28 +395,88 @@ bunny.foreach(volume, wd => {
 
 }, {useEmb: false});
 
-console.log(tetRestVolume)
 
-const gravity = new THREE.Vector3(0, -5, 0);
+const gravity = new THREE.Vector3(0, -10, 0);
 
-function computeEdgeLengths() {
-	bunny.foreach(bunny.edge, ed => {
-		const p0 = position[bunny.cell(vertex, ed)];
-		const p1 = position[bunny.cell(vertex, bunny.phi2[ed])];
+// function computeEdgeLengths() {
+// 	bunny.foreach(bunny.edge, ed => {
+// 		const p0 = position[bunny.cell(vertex, ed)];
+// 		const p1 = position[bunny.cell(vertex, bunny.phi2[ed])];
 	
-		edgeLength[bunny.cell(bunny.edge, ed)] = p0.distanceTo(p1);
-	});
+// 		edgeLength[bunny.cell(bunny.edge, ed)] = p0.distanceTo(p1);
+// 	});
+// }
+
+// function computeVolumes() {
+// 	bunny.foreach(bunny.volume, wd => {
+// 		const p0 = position[bunny.cell(vertex, wd)];
+// 		const p1 = position[bunny.cell(vertex, bunny.phi_1[wd])];
+// 		const p2 = position[bunny.cell(vertex, bunny.phi1[wd])];
+// 		const p3 = position[bunny.cell(vertex, bunny.phi([2, -1], wd))];
+// 		tetRestVolume[bunny.cell(vertex, wd)] = computeTetVolume(p0, p1, p2, p3)
+// 	});
+// }
+
+
+function preSolveTest(dt) {
+	const P = testPos[vP];
+
+	testVel[vP].addScaledVector(gravity, dt);
+	testPrevPos[vP].copy(testPos[vP]);
+	testPos[vP].addScaledVector(testVel[vP], dt);
+
+	testPrevPos[vA].copy(testPos[vA]);
+	testPos[vA].addScaledVector(testVel[vA], dt);
+	testPrevPos[vB].copy(testPos[vB]);
+	testPos[vB].addScaledVector(testVel[vB], dt);
+	testPrevPos[vC].copy(testPos[vC]);
+	testPos[vC].addScaledVector(testVel[vC], dt);
+
+	// if(testPos[vP].y < 0.0) {
+	// 	testPos[vP].copy(testPrevPos[vP]);
+	// 	testPos[vP].y = 0.0;
+	// }
+}	
+
+
+function solveTriangle(compliance = 0, dt) {
+	const alpha = compliance / (dt * dt);
+
+	const dist = signedDistanceToTriangle(testPos[vA], testPos[vB], testPos[vC], testPos[vP]);
+	if(dist > 0)
+		return;
+
+	const bary = barycentricCoordinates(testPos[vA], testPos[vB], testPos[vC], testPos[vP])
+	const N = triangleNormal(testPos[vA], testPos[vB], testPos[vC]);
+
+
+
+	console.log(bary);
+	// console.log(dist);
+
+	const w = 2;
+	const c = dist;
+	const s = -c / (w + alpha);
+
+	testPos[vP].addScaledVector(N, s);
+	testPos[vA].addScaledVector(N, -s * bary.x * 5);
+	testPos[vB].addScaledVector(N, -s * bary.y);
+	testPos[vC].addScaledVector(N, -s * bary.z);
 }
 
-function computeVolumes() {
-	bunny.foreach(bunny.volume, wd => {
-		const p0 = position[bunny.cell(vertex, wd)];
-		const p1 = position[bunny.cell(vertex, bunny.phi_1[wd])];
-		const p2 = position[bunny.cell(vertex, bunny.phi1[wd])];
-		const p3 = position[bunny.cell(vertex, bunny.phi([2, -1], wd))];
-		tetRestVolume[bunny.cell(vertex, wd)] = computeTetVolume(p0, p1, p2, p3)
-	});
+
+function postSolveTest(dt) {
+	testVel[vA].subVectors(testPos[vA], testPrevPos[vA]).multiplyScalar(1/dt);
+	testVel[vB].subVectors(testPos[vB], testPrevPos[vB]).multiplyScalar(1/dt);
+	testVel[vC].subVectors(testPos[vC], testPrevPos[vC]).multiplyScalar(1/dt);
+	testVel[vP].subVectors(testPos[vP], testPrevPos[vP]).multiplyScalar(1/dt);
+
+	console.log(testVel[vA])
 }
+
+// function
+
+
 
 function preSolve(dt) {
 	bunny.foreach(vertex, vd => {
@@ -408,7 +577,141 @@ function solveVolumes(compliance, dt) {
 	}, {useEmb: true});
 }
 
+let first = true;
+
+function closestTriangle(vid) {
+	const P = position[vid];
+	const triangles = [];
+	bunny.foreach(face, fd => {
+		const vidA = bunny.cell(vertex, fd);
+		const vidB = bunny.cell(vertex, bunny.phi1[fd]);
+		const vidC = bunny.cell(vertex, bunny.phi_1[fd]);
+
+		if(vidA == vid || vidB == vid || vidC == vid)
+			return;
+
+		const A = position[vidA];
+		const B = position[vidB];
+		const C = position[vidC];
+		const P2 = closestPointOnTriangle(A, B, C, P);
+		triangles.push({fd, d: P2.distanceTo(P)});
+		// console.log(P2, P)
+	}, {cache: faceBoundaryCache});
+
+	triangles.sort((a, b) => a.d - b.d);
+
+
+	const fd = triangles[0].fd
+	const vidA = bunny.cell(vertex, fd);
+	const vidB = bunny.cell(vertex, bunny.phi1[fd]);
+	const vidC = bunny.cell(vertex, bunny.phi_1[fd]);
+
+	const A = position[vidA];
+	const B = position[vidB];
+	const C = position[vidC];
+
+
+
+	triangles[0].d = signedDistanceToTriangle(A, B, C, P);
+	triangles[0].bary = barycentricCoordinates(A, B, C, P);
+
+	if(vid == 2) {
+		sphereMarker.position.copy(closestPointOnTriangle(A, B, C, P))
+		sphereMarker2.position.copy(projectionOnTriangle(A, B, C, P))
+		sphereMarker3.position.copy(P)
+	}
+
+	return triangles[0];
+}
+
+function closestTriangleTest(P) {
+	// const P = position[vid];
+	const triangles = [];
+	bunny.foreach(face, fd => {
+		const vidA = bunny.cell(vertex, fd);
+		const vidB = bunny.cell(vertex, bunny.phi1[fd]);
+		const vidC = bunny.cell(vertex, bunny.phi_1[fd]);
+
+		// if(vidA == vid || vidB == vid || vidC == vid)
+		// 	return;
+
+		const A = position[vidA];
+		const B = position[vidB];
+		const C = position[vidC];
+		const P2 = closestPointOnTriangle(A, B, C, P);
+		triangles.push({fd, d: P2.distanceTo(P)});
+		// console.log(P2, P)
+	}, {cache: faceBoundaryCache});
+
+	triangles.sort((a, b) => a.d - b.d);
+
+
+	const fd = triangles[0].fd
+	const vidA = bunny.cell(vertex, fd);
+	const vidB = bunny.cell(vertex, bunny.phi1[fd]);
+	const vidC = bunny.cell(vertex, bunny.phi_1[fd]);
+
+	const A = position[vidA];
+	const B = position[vidB];
+	const C = position[vidC];
+
+
+
+	triangles[0].d = signedDistanceToTriangle(A, B, C, P);
+	// if(vid == 2) {
+	// 	first = false;
+	// 	console.log(triangles[0])
+	sphereMarker.position.copy(closestPointOnTriangle(A, B, C, P))
+	// 	console.log(barycentricCoordinates(A, B, C, P))
+	sphereMarker2.position.copy(projectionOnTriangle(A, B, C, P))
+	// }
+
+	return triangles[0];
+}
+
+function solveCollisions(compliance, dt) {
+	const alpha = compliance / (dt * dt);
+
+	bunny.foreach(vertex, vd => {
+		// console.log(vd);
+		const vid = bunny.cell(vertex, vd);
+		const triangle = closestTriangle(vid);
+
+		if(triangle.d > 0)
+			return;
+
+		if(triangle.bary.x < 0 || triangle.bary.y < 0 || triangle.bary.z < 0)
+			return;
+
+		const vidA = bunny.cell(vertex, triangle.fd);
+		const vidB = bunny.cell(vertex, bunny.phi1[triangle.fd]);
+		const vidC = bunny.cell(vertex, bunny.phi_1[triangle.fd]);
+		
+		const N = triangleNormal(position[vidA], position[vidB], position[vidC]);
+
+		const wP = invMass[vid];
+		const wA = invMass[vidA];
+		const wB = invMass[vidB];
+		const wC = invMass[vidC];
+		const w = wP + wA * triangle.bary.x+ wB * triangle.bary.y+ wC* triangle.bary.z;
+
+		const c = triangle.d;
+		const s = -c / (w + alpha);
+
+		position[vid].addScaledVector(N, s * wP);
+		position[vidA].addScaledVector(N, -s * wA * triangle.bary.x);
+		position[vidB].addScaledVector(N, -s * wB * triangle.bary.y);
+		position[vidC].addScaledVector(N, -s * wC * triangle.bary.z);
+			
+
+		// const 
+	}, {cache: vertexBoundaryCache});
+
+}
+
+
 function solve(dt, volumeCompliance, edgeCompliance) {
+	solveCollisions(0, dt);
 	solveEdges(edgeCompliance, dt);
 	solveVolumes(volumeCompliance, dt);
 
@@ -424,6 +727,13 @@ function postSolve(dt) {
 		velocity[vid].subVectors(position[vid], prevPosition[vid]).multiplyScalar(1/dt);
 	}, {useEmb: true});
 }
+
+
+
+
+
+
+
 
 
 const keyHeld = {};
@@ -481,13 +791,14 @@ scene.add(new THREE.AxesHelper(100))
 
 
 
-const controlDQ = new DualQuaternion;
-const controlDQHelper = new DQHelper(controlDQ);
-const controlDQ2 = new DualQuaternion;
-const controlDQHelper2 = new DQHelper(controlDQ2);
-// const controlDQHelper = new DQHelper();
-scene.add(controlDQHelper)
-scene.add(controlDQHelper2)
+// const controlDQ = new DualQuaternion;
+// const controlDQHelper = new DQHelper(controlDQ);
+// const controlDQ2 = new DualQuaternion;
+// const controlDQHelper2 = new DQHelper(controlDQ2);
+// // const controlDQHelper = new DQHelper();
+// scene.add(controlDQHelper)
+// scene.add(controlDQHelper2)
+
 
 
 
@@ -498,7 +809,25 @@ const settings = {
 	},
 	
 	updateDisplay : function () {
+
+
+		// bunnyRenderer.vertices.update();
 		bunnyRenderer.edges.update();
+		// bunnyRenderer.volumes.update();
+		// sphereMarker.
+	},
+
+	updateTest : function () {
+		// testPos[vP2] = projectionOnTriangle(A, B, C, testPos[vP]);
+		// testPos[vP3] = closestPointOnTriangle(A, B, C, testPos[vP]);
+		closestTriangleTest(testPos[vP])
+		console.log(barycentricCoordinates(A, B, C,testPos[vP] ))
+
+		// bunnyRenderer.edges.update();
+		testRenderer.vertices.update();
+		// testRenderer.edges.update();
+		// testRenderer.faces.update();
+
 		// bunnyRenderer.volumes.update();
 
 	},
@@ -509,8 +838,13 @@ const settings = {
 	volumeCompliance: 0,
 	edgeCompliance: 0,
 	step: function() {
+		// preSolveTest(this.dt);		
+		// solveTriangle(0, this.dt)
+		// postSolveTest(this.dt)
+		// this.updateTest()
 
-		for(let i = 0; i < 2; ++i) {
+
+		for(let i = 0; i < 1; ++i) {
 			preSolve(this.dt);
 			solve(this.dt, this.volumeCompliance, this.edgeCompliance);
 			postSolve(this.dt);
@@ -536,6 +870,9 @@ const settings = {
 const gui = new GUI({autoPlace: true, hideable: false});
 const simulationFolder = gui.addFolder("simulation");
 simulationFolder.open()
+simulationFolder.add(testPos[vP], "x").onChange(settings.updateTest.bind(settings));
+simulationFolder.add(testPos[vP], "y").onChange(settings.updateTest.bind(settings));
+simulationFolder.add(testPos[vP], "z").onChange(settings.updateTest.bind(settings));
 simulationFolder.add(settings, "play");
 simulationFolder.add(settings, "step");
 simulationFolder.add(settings, "reset");
