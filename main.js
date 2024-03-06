@@ -17,9 +17,12 @@ import bunnyTet from './bunnyTet.js'
 import { exportTet, loadTet } from './CMapJS/IO/VolumesFormats/Tet.js';
 import dragonTet from './dragonTet.js';
 // import ballTet from './ballTet.js';
-import ballTet from './ballTet2.js';
+import ballTet from './ballTet.js';
+import cubeTet from './cubeTet.js';
 import icosahedronTet from './icosahedronTet.js';
 import icosahedronTet2 from './icosahedronTet2.js';
+import icosahedron3Tet from './icosahedron3Tet.js';
+import cube2Tet from './cubeTet2.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff);
@@ -237,37 +240,38 @@ const testRenderer = new Renderer(testGraph);
 const stats = new Stats()
 document.body.appendChild( stats.dom );
 
+ 
 
-const geometry = loadTet(icosahedronTet2);
+const geometry = loadTet(ballTet);
 console.log(geometry);
 
-// const geometry2 = {v: [], tet: []};
+const geometry2 = {v: [], tet: []};
 
-// geometry.v.forEach(v => {
-// 	geometry2.v.push([...v]);
-// })
-// geometry.v.forEach(v => {
-// 	geometry2.v.push([v[0], v[1] + 1, v[2]]);
-// })
-
-
-// geometry.tet.forEach(v => {
-// 	geometry2.tet.push([v[0], v[1], v[2], v[3]]);
-// })
-// geometry.tet.forEach(v => {
-// 	geometry2.tet.push([v[0] + 12, v[1] + 12, v[2] + 12, v[3] + 12]);
-// })
+geometry.v.forEach(v => {
+	geometry2.v.push([...v]);
+})
+geometry.v.forEach(v => {
+	geometry2.v.push([v[0], v[1] + 1, v[2]]);
+})
 
 
-// console.log(geometry2);
-// console.log(exportTet(geometry2))
+geometry.tet.forEach(v => {
+	geometry2.tet.push([v[0], v[1], v[2], v[3]]);
+})
+geometry.tet.forEach(v => {
+	geometry2.tet.push([v[0] + 26, v[1] + 26, v[2] + 26, v[3] + 26]);
+})
+
+
+console.log(geometry2);
+console.log(exportTet(geometry2))
 
 const bunny = mapFromGeometry(geometry)
 
 const bunnyRenderer = new Renderer(bunny);
 // bunnyRenderer.vertices.create({size: 0.035, color: new THREE.Color(0x00ff00)}).addTo(scene);
 bunnyRenderer.edges.create({size: 1}).addTo(scene);
-// bunnyRenderer.volumes.create().addTo(scene);
+bunnyRenderer.volumes.create().addTo(scene);
 
 
 function computeTetVolume(p0, p1, p2, p3) {
@@ -351,7 +355,7 @@ bunny.foreachIncident(vertex, volume, volumeBoundaryCache[1], vd => {
 	position[bunny.cell(vertex, vd)].y -= 1;
 	position[bunny.cell(vertex, vd)].applyAxisAngle(new THREE.Vector3(-1, 0, 1).normalize(), Math.PI / 6)
 
-	position[bunny.cell(vertex, vd)].y += 1;
+	position[bunny.cell(vertex, vd)].y += 1.5;
 });
 
 
@@ -370,7 +374,7 @@ bunny.foreach(vertex, vd => {
 }, {useEmb: true});
 
 bunnyRenderer.edges.update()
-bunnyRenderer.vertices.update()
+bunnyRenderer.volumes.update()
 
 bunny.foreach(edge, ed => {
 	const p0 = position[bunny.cell(vertex, ed)];
@@ -615,7 +619,7 @@ function closestTriangle(vid) {
 	triangles[0].d = signedDistanceToTriangle(A, B, C, P);
 	triangles[0].bary = barycentricCoordinates(A, B, C, P);
 
-	if(vid == 2) {
+	if(vid == 3) {
 		sphereMarker.position.copy(closestPointOnTriangle(A, B, C, P))
 		sphereMarker2.position.copy(projectionOnTriangle(A, B, C, P))
 		sphereMarker3.position.copy(P)
@@ -813,7 +817,7 @@ const settings = {
 
 		// bunnyRenderer.vertices.update();
 		bunnyRenderer.edges.update();
-		// bunnyRenderer.volumes.update();
+		bunnyRenderer.volumes.update();
 		// sphereMarker.
 	},
 
@@ -834,7 +838,7 @@ const settings = {
 
 	play: false,
 	disp: 0,
-	dt: 0.0018,
+	dt: 0.00036,
 	volumeCompliance: 0,
 	edgeCompliance: 0,
 	step: function() {
@@ -844,7 +848,7 @@ const settings = {
 		// this.updateTest()
 
 
-		for(let i = 0; i < 1; ++i) {
+		for(let i = 0; i < 10; ++i) {
 			preSolve(this.dt);
 			solve(this.dt, this.volumeCompliance, this.edgeCompliance);
 			postSolve(this.dt);
