@@ -243,35 +243,35 @@ document.body.appendChild( stats.dom );
  
 
 const geometry = loadTet(ballTet);
-console.log(geometry);
+// console.log(geometry);
 
-const geometry2 = {v: [], tet: []};
+// const geometry2 = {v: [], tet: []};
 
-geometry.v.forEach(v => {
-	geometry2.v.push([...v]);
-})
-geometry.v.forEach(v => {
-	geometry2.v.push([v[0], v[1] + 1, v[2]]);
-})
-
-
-geometry.tet.forEach(v => {
-	geometry2.tet.push([v[0], v[1], v[2], v[3]]);
-})
-geometry.tet.forEach(v => {
-	geometry2.tet.push([v[0] + 26, v[1] + 26, v[2] + 26, v[3] + 26]);
-})
+// geometry.v.forEach(v => {
+// 	geometry2.v.push([...v]);
+// })
+// geometry.v.forEach(v => {
+// 	geometry2.v.push([v[0], v[1] + 1, v[2]]);
+// })
 
 
-console.log(geometry2);
-console.log(exportTet(geometry2))
+// geometry.tet.forEach(v => {
+// 	geometry2.tet.push([v[0], v[1], v[2], v[3]]);
+// })
+// geometry.tet.forEach(v => {
+// 	geometry2.tet.push([v[0] + 26, v[1] + 26, v[2] + 26, v[3] + 26]);
+// })
+
+
+// console.log(geometry2);
+// console.log(exportTet(geometry2))
 
 const bunny = mapFromGeometry(geometry)
 
 const bunnyRenderer = new Renderer(bunny);
 // bunnyRenderer.vertices.create({size: 0.035, color: new THREE.Color(0x00ff00)}).addTo(scene);
 bunnyRenderer.edges.create({size: 1}).addTo(scene);
-bunnyRenderer.volumes.create().addTo(scene);
+// bunnyRenderer.volumes.create().addTo(scene);
 
 
 function computeTetVolume(p0, p1, p2, p3) {
@@ -282,6 +282,9 @@ const vertex = bunny.vertex;
 const edge = bunny.edge;
 const face = bunny.face;
 const volume = bunny.volume;
+
+bunny.createEmbedding(face);
+bunny.setEmbeddings(face);
 
 bunny.createEmbedding(volume);
 bunny.setEmbeddings(volume);
@@ -362,8 +365,6 @@ bunny.foreachIncident(vertex, volume, volumeBoundaryCache[1], vd => {
 // const graphRenderer = new Renderer(boundaryGraph)
 // graphRenderer.vertices.create().addTo(scene)
 
-
-
 /// initialization
 bunny.foreach(vertex, vd => {
 	position[bunny.cell(vertex, vd)].y += 1;
@@ -372,6 +373,162 @@ bunny.foreach(vertex, vd => {
 	invMass[bunny.cell(vertex, vd)] = 0;
 	velocity[bunny.cell(vertex, vd)] = new THREE.Vector3;
 }, {useEmb: true});
+
+
+
+
+const faceBB = bunny.addAttribute(face, "BB");
+const faceBBH = bunny.addAttribute(face, "BBH");
+const BBs = [];
+bunny.foreach(face, fd => {
+	const fid = bunny.cell(face, fd);
+	
+	const bb = new THREE.Box3();
+
+	// const vid0 = bunny.cell(vertex, fd);
+	// const vid1 = bunny.cell(vertex, bunny.phi1[fd]);
+	// const vid2 = bunny.cell(vertex, bunny.phi_1[fd]);
+
+	bb.setFromPoints([
+		position[bunny.cell(vertex, fd)],
+		position[bunny.cell(vertex, bunny.phi1[fd])],
+		position[bunny.cell(vertex, bunny.phi_1[fd])],
+	]);
+
+	const bbHelper = new THREE.Box3Helper(bb, 0x990000);
+	// scene.add(bbHelper)
+
+	faceBB[fid] = bb;
+	faceBBH[fid] = bbHelper;
+
+	BBs.push(bb);
+	// console.log(fd);
+}, {cache: faceBoundaryCache})
+
+
+function makePrimitive(fd, bb) {
+	return {fd, bb};
+}
+
+function makeNode(primitives) {
+	const bb = new THREE.Box3;
+	primitives.forEach(p => {
+		bb.union(p.bb);
+	});
+
+	return {
+		bb,
+		primitives,
+	}
+}
+
+
+function splitNode(node) {
+	const primitives = node.primitives;
+	const size = new THREE.Vector3;
+	node.bb.getSize(size);
+
+	let axis = size['x'] > size['y'] ? 'x' : 'y';
+	axis = size[axis] > size['z'] ? axis : 'z';
+
+	const va = new THREE.Vector3;
+	const vb = new THREE.Vector3;
+	primitives.sort((a, b) => {
+		a.bb.getCenter(va);
+		b.bb.getCenter(vb);
+
+		return va[axis] - vb[axis];
+	});
+
+	const nbPrimitives = primitives.length;
+	const child0 = makeNode(primitives.slice(0, primitives.length / 2));
+	const child1 = makeNode(primitives.slice(primitives.length / 2));
+
+	node.children = [child0, child1];
+	return [child0, child1];
+}
+
+
+const primitives = [];
+bunny.foreach(face, fd => {
+	const fid = bunny.cell(face, fd);
+	primitives.push(makePrimitive(fd, faceBB[fid]));
+
+}, {cache: faceBoundaryCache});
+
+
+
+const expansion = 0.05;
+const splitCriteria = 5;
+const nodes = [];
+function buildBVH() {
+	const rootNode = makeNode(primitives);
+	const rootHelper = new THREE.Box3Helper(rootNode.bb, 0x990000);
+	const size = new THREE.Vector3;
+	rootNode.bb.getSize(size);
+	rootNode.bb.expandByVector(size.multiplyScalar(expansion))
+
+	// scene.add(rootHelper)
+
+	const stack = [rootNode];
+	while(stack.length) {
+		const node = stack.shift();
+		nodes.push(node);
+		if(node.primitives.length <= splitCriteria) 
+			continue;
+		
+		
+		const children = splitNode(node);
+		children[0].bb.getSize(size);
+		children[0].bb.expandByVector(size.multiplyScalar(expansion))
+		children[1].bb.getSize(size);
+		children[1].bb.expandByVector(size.multiplyScalar(expansion))
+		// scene.add(new THREE.Box3Helper(children[0].bb, 0x990000));
+		// scene.add(new THREE.Box3Helper(children[1].bb, 0x990000));
+		
+		stack.push(...children)
+
+		delete node.primitives;
+		
+	}
+
+	console.log(rootNode)
+}
+buildBVH()
+
+
+/// update bvh
+bunny.foreach(face, fd => {
+	const fid = bunny.cell(face, fd);
+	
+	const bb = faceBB[fid];
+
+	// const vid0 = bunny.cell(vertex, fd);
+	// const vid1 = bunny.cell(vertex, bunny.phi1[fd]);
+	// const vid2 = bunny.cell(vertex, bunny.phi_1[fd]);
+
+	bb.setFromPoints([
+		position[bunny.cell(vertex, fd)],
+		position[bunny.cell(vertex, bunny.phi1[fd])],
+		position[bunny.cell(vertex, bunny.phi_1[fd])],
+	]);
+
+
+}, {cache: faceBoundaryCache})
+
+// function buildBvhBoundary(mesh) {
+// 	const vertex = mesh.vertex;
+
+
+// }
+
+// const BVH = buildBvhBoundary(bunny);
+
+
+
+
+
+
 
 bunnyRenderer.edges.update()
 bunnyRenderer.volumes.update()
@@ -483,6 +640,10 @@ function postSolveTest(dt) {
 
 
 function preSolve(dt) {
+	const N = new THREE.Vector3(0, 1, 0);
+	const deltaP = new THREE.Vector3;
+	const tangent = new THREE.Vector3;
+
 	bunny.foreach(vertex, vd => {
 		const vid = bunny.cell(vertex, vd);
 
@@ -494,6 +655,9 @@ function preSolve(dt) {
 		position[vid].addScaledVector(velocity[vid], dt);
 
 		if(position[vid].y < 0.0) {
+			deltaP.copy(position[vid]).sub(prevPosition[vid]);
+			tangent.copy(deltaP).addScaledVector(N, -N.dot(deltaP));
+			
 			position[vid].copy(prevPosition[vid]);
 			position[vid].y = 0.0;
 		}
@@ -676,6 +840,13 @@ function closestTriangleTest(P) {
 function solveCollisions(compliance, dt) {
 	const alpha = compliance / (dt * dt);
 
+	const N = new THREE.Vector3;
+	const deltaP = new THREE.Vector3;
+	const tangent = new THREE.Vector3;
+	const vT = new THREE.Vector3;
+	const vP = new THREE.Vector3;
+
+
 	bunny.foreach(vertex, vd => {
 		// console.log(vd);
 		const vid = bunny.cell(vertex, vd);
@@ -707,8 +878,14 @@ function solveCollisions(compliance, dt) {
 		position[vidB].addScaledVector(N, -s * wB * triangle.bary.y);
 		position[vidC].addScaledVector(N, -s * wC * triangle.bary.z);
 			
-
-		// const 
+		
+		// vT.copy(velocity[vidA]).multiplyScalar(triangle.bary.x);
+		// vT.addScaledVector(velocity[vidB], triangle.bary.y);
+		// vT.addScaledVector(velocity[vidC], triangle.bary.z);
+		// vP.copy(velocity[vid]);
+		// deltaP.copy(position[vid]).sub(prevPosition[vid]);
+		// tangent.copy(deltaP).addScaledVector(N, -N.dot(deltaP));
+			
 	}, {cache: vertexBoundaryCache});
 
 }
@@ -745,6 +922,11 @@ const defaultKeyDown = function(event){
 	keyHeld[event.code] = true;
 };
 
+let bbId = 0;
+let bb = new THREE.Box3
+let bbHelper = new THREE.Box3Helper(bb, 0xff0000)
+scene.add(bbHelper)
+
 const defaultKeyUp = function(event){
 	console.log(event.which, event.code, event.charCode);
 	switch(event.code) {
@@ -765,8 +947,20 @@ const defaultKeyUp = function(event){
 		case "KeyL":
 			break;
 		case "Numpad0":
+			if(bbId < nodes.length){
+				++bbId;
+				bb.copy(nodes[bbId].bb);
+				console.log(nodes[bbId].primitives)
+			}
 			break;
-		case "ArrowRight":
+		case "Numpad1":
+			if(bbId > 0){
+				--bbId;
+				bb.copy(nodes[bbId].bb);
+				console.log(nodes[bbId].primitives)
+			}
+			break;
+		case "ArrowLeft":
 			break;
 	};
 
@@ -817,7 +1011,7 @@ const settings = {
 
 		// bunnyRenderer.vertices.update();
 		bunnyRenderer.edges.update();
-		bunnyRenderer.volumes.update();
+		// bunnyRenderer.volumes.update();
 		// sphereMarker.
 	},
 
@@ -828,7 +1022,7 @@ const settings = {
 		console.log(barycentricCoordinates(A, B, C,testPos[vP] ))
 
 		// bunnyRenderer.edges.update();
-		testRenderer.vertices.update();
+		// testRenderer.vertices.update();
 		// testRenderer.edges.update();
 		// testRenderer.faces.update();
 
