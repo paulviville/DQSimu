@@ -208,12 +208,12 @@ function closestPointOnTriangle(A, B, C, P) {
 	return A.clone().multiplyScalar(bary.x).addScaledVector(B, bary.y).addScaledVector(C, bary.z);
 }
 
-console.log(barycentricCoordinates(A, B, C, P))
+// console.log(barycentricCoordinates(A, B, C, P))
 
-signedDistanceToTriangle(A, B, C, P);
+// signedDistanceToTriangle(A, B, C, P);
 
 
-testPos[vP3].copy(closestPointOnTriangle(A, B, C, P))
+// testPos[vP3].copy(closestPointOnTriangle(A, B, C, P))
 
 
 
@@ -266,42 +266,42 @@ const geometry = loadTet(ballTet);
 // console.log(geometry2);
 // console.log(exportTet(geometry2))
 
-const bunny = mapFromGeometry(geometry)
+const mesh = mapFromGeometry(geometry)
 
-const bunnyRenderer = new Renderer(bunny);
-// bunnyRenderer.vertices.create({size: 0.035, color: new THREE.Color(0x00ff00)}).addTo(scene);
-bunnyRenderer.edges.create({size: 1}).addTo(scene);
-// bunnyRenderer.volumes.create().addTo(scene);
+const meshRenderer = new Renderer(mesh);
+// meshRenderer.vertices.create({size: 0.035, color: new THREE.Color(0x00ff00)}).addTo(scene);
+meshRenderer.edges.create({size: 1}).addTo(scene);
+// meshRenderer.volumes.create().addTo(scene);
 
 
 function computeTetVolume(p0, p1, p2, p3) {
 	return (1/6) * (p1.clone().sub(p0).cross(p2.clone().sub(p0)).dot(p3.clone().sub(p0)))
 }
 
-const vertex = bunny.vertex;
-const edge = bunny.edge;
-const face = bunny.face;
-const volume = bunny.volume;
+const vertex = mesh.vertex;
+const edge = mesh.edge;
+const face = mesh.face;
+const volume = mesh.volume;
 
-bunny.createEmbedding(face);
-bunny.setEmbeddings(face);
+mesh.createEmbedding(face);
+mesh.setEmbeddings(face);
 
-bunny.createEmbedding(volume);
-bunny.setEmbeddings(volume);
-// bunny.foreach(volume, wd => {
-// 	console.log(bunny.cell(volume, wd));
+mesh.createEmbedding(volume);
+mesh.setEmbeddings(volume);
+// mesh.foreach(volume, wd => {
+// 	console.log(mesh.cell(volume, wd));
 // })
 
-const position = bunny.getAttribute(vertex, "position");
-const positionInit = bunny.addAttribute(vertex, "positionInit");
-const prevPosition = bunny.addAttribute(vertex, "prevPosition");
-const invMass = bunny.addAttribute(vertex, "invMass");
-const velocity = bunny.addAttribute(vertex, "velocity");
+const position = mesh.getAttribute(vertex, "position");
+const positionInit = mesh.addAttribute(vertex, "positionInit");
+const prevPosition = mesh.addAttribute(vertex, "prevPosition");
+const invMass = mesh.addAttribute(vertex, "invMass");
+const velocity = mesh.addAttribute(vertex, "velocity");
 
-const edgeLength = bunny.addAttribute(edge, "edgeLength");
-const edgeRestLength = bunny.addAttribute(edge, "edgeRestLength");
-const tetVolume = bunny.addAttribute(volume, "tetVolume");
-const tetRestVolume = bunny.addAttribute(volume, "tetRestVolume");
+const edgeLength = mesh.addAttribute(edge, "edgeLength");
+const edgeRestLength = mesh.addAttribute(edge, "edgeRestLength");
+const tetVolume = mesh.addAttribute(volume, "tetVolume");
+const tetRestVolume = mesh.addAttribute(volume, "tetRestVolume");
 
 
 // const boundaryGraph = new IncidenceGraph
@@ -312,29 +312,29 @@ const tetRestVolume = bunny.addAttribute(volume, "tetRestVolume");
 const vertexBoundaryCache = []
 const faceBoundaryCache = []
 const volumeBoundaryCache = []
-// bunny.foreach(vertex, vd => {
-// 	if(bunny.isBoundaryCell(vertex, vd))
+// mesh.foreach(vertex, vd => {
+// 	if(mesh.isBoundaryCell(vertex, vd))
 // 		vertexBoundaryCache.push(vd);
 
 
 	
 // });
 
-bunny.foreach(volume, wd => {
-	if(bunny.isBoundary(wd))
+mesh.foreach(volume, wd => {
+	if(mesh.isBoundary(wd))
 		volumeBoundaryCache.push(wd);
 	
-	if(bunny.isBoundary(wd)){
-		bunny.foreachIncident(vertex, volume, wd, vd => {
+	if(mesh.isBoundary(wd)){
+		mesh.foreachIncident(vertex, volume, wd, vd => {
 			vertexBoundaryCache.push(vd)
-			// const vid = bunny.cell(vertex, vd);
+			// const vid = mesh.cell(vertex, vd);
 			// let v = boundaryGraph.addVertex();
 			// positionGraph[v] = position[vid].clone()
 		});
-		bunny.foreachIncident(face, volume, wd, fd => {
+		mesh.foreachIncident(face, volume, wd, fd => {
 			// faceBoundaryCache.push(fd)
-			faceBoundaryCache.push(bunny.phi3[fd])
-			// const vid = bunny.cell(vertex, vd);
+			faceBoundaryCache.push(mesh.phi3[fd])
+			// const vid = mesh.cell(vertex, vd);
 			// let v = boundaryGraph.addVertex();
 			// positionGraph[v] = position[vid].clone()
 		});
@@ -347,18 +347,18 @@ bunny.foreach(volume, wd => {
 console.log(faceBoundaryCache, vertexBoundaryCache, volumeBoundaryCache)
 
 
-bunny.foreachIncident(vertex, volume, volumeBoundaryCache[0], vd => {
-	// position[bunny.cell(vertex, vd)].y -= 1;
-	position[bunny.cell(vertex, vd)].applyAxisAngle(new THREE.Vector3(1, 0, 1).normalize(), Math.PI / 12)
-	// position[bunny.cell(vertex, vd)].y += 1;
+mesh.foreachIncident(vertex, volume, volumeBoundaryCache[0], vd => {
+	// position[mesh.cell(vertex, vd)].y -= 1;
+	position[mesh.cell(vertex, vd)].applyAxisAngle(new THREE.Vector3(1, 0, 1).normalize(), Math.PI / 12)
+	// position[mesh.cell(vertex, vd)].y += 1;
 
 });
 
-bunny.foreachIncident(vertex, volume, volumeBoundaryCache[1], vd => {
-	position[bunny.cell(vertex, vd)].y -= 1;
-	position[bunny.cell(vertex, vd)].applyAxisAngle(new THREE.Vector3(-1, 0, 1).normalize(), Math.PI / 6)
+mesh.foreachIncident(vertex, volume, volumeBoundaryCache[1], vd => {
+	position[mesh.cell(vertex, vd)].y -= 1;
+	position[mesh.cell(vertex, vd)].applyAxisAngle(new THREE.Vector3(-1, 0, 1).normalize(), Math.PI / 6)
 
-	position[bunny.cell(vertex, vd)].y += 1.5;
+	position[mesh.cell(vertex, vd)].y += 1.5;
 });
 
 
@@ -366,33 +366,33 @@ bunny.foreachIncident(vertex, volume, volumeBoundaryCache[1], vd => {
 // graphRenderer.vertices.create().addTo(scene)
 
 /// initialization
-bunny.foreach(vertex, vd => {
-	position[bunny.cell(vertex, vd)].y += 1;
-	positionInit[bunny.cell(vertex, vd)] = position[bunny.cell(vertex, vd)].clone();
-	prevPosition[bunny.cell(vertex, vd)] = new THREE.Vector3;
-	invMass[bunny.cell(vertex, vd)] = 0;
-	velocity[bunny.cell(vertex, vd)] = new THREE.Vector3;
+mesh.foreach(vertex, vd => {
+	position[mesh.cell(vertex, vd)].y += 1;
+	positionInit[mesh.cell(vertex, vd)] = position[mesh.cell(vertex, vd)].clone();
+	prevPosition[mesh.cell(vertex, vd)] = new THREE.Vector3;
+	invMass[mesh.cell(vertex, vd)] = 0;
+	velocity[mesh.cell(vertex, vd)] = new THREE.Vector3;
 }, {useEmb: true});
 
 
 
 
-const faceBB = bunny.addAttribute(face, "BB");
-const faceBBH = bunny.addAttribute(face, "BBH");
+const faceBB = mesh.addAttribute(face, "BB");
+const faceBBH = mesh.addAttribute(face, "BBH");
 const BBs = [];
-bunny.foreach(face, fd => {
-	const fid = bunny.cell(face, fd);
+mesh.foreach(face, fd => {
+	const fid = mesh.cell(face, fd);
 	
 	const bb = new THREE.Box3();
 
-	// const vid0 = bunny.cell(vertex, fd);
-	// const vid1 = bunny.cell(vertex, bunny.phi1[fd]);
-	// const vid2 = bunny.cell(vertex, bunny.phi_1[fd]);
+	// const vid0 = mesh.cell(vertex, fd);
+	// const vid1 = mesh.cell(vertex, mesh.phi1[fd]);
+	// const vid2 = mesh.cell(vertex, mesh.phi_1[fd]);
 
 	bb.setFromPoints([
-		position[bunny.cell(vertex, fd)],
-		position[bunny.cell(vertex, bunny.phi1[fd])],
-		position[bunny.cell(vertex, bunny.phi_1[fd])],
+		position[mesh.cell(vertex, fd)],
+		position[mesh.cell(vertex, mesh.phi1[fd])],
+		position[mesh.cell(vertex, mesh.phi_1[fd])],
 	]);
 
 	const bbHelper = new THREE.Box3Helper(bb, 0x990000);
@@ -450,8 +450,8 @@ function splitNode(node) {
 
 
 const primitives = [];
-bunny.foreach(face, fd => {
-	const fid = bunny.cell(face, fd);
+mesh.foreach(face, fd => {
+	const fid = mesh.cell(face, fd);
 	primitives.push(makePrimitive(fd, faceBB[fid]));
 
 }, {cache: faceBoundaryCache});
@@ -462,6 +462,7 @@ const expansion = 0.05;
 const splitCriteria = 5;
 const nodes = [];
 function buildBVH() {
+	nodes.length = 0;
 	const rootNode = makeNode(primitives);
 	const rootHelper = new THREE.Box3Helper(rootNode.bb, 0x990000);
 	const size = new THREE.Vector3;
@@ -483,34 +484,42 @@ function buildBVH() {
 		children[0].bb.expandByVector(size.multiplyScalar(expansion))
 		children[1].bb.getSize(size);
 		children[1].bb.expandByVector(size.multiplyScalar(expansion))
-		// scene.add(new THREE.Box3Helper(children[0].bb, 0x990000));
-		// scene.add(new THREE.Box3Helper(children[1].bb, 0x990000));
-		
+		// scene.add(new THREE.Box3Helper(children[0].bb, 0x990000))
+		// scene.add(new THREE.Box3Helper(children[1].bb, 0x990000))
 		stack.push(...children)
 
 		delete node.primitives;
 		
 	}
-
-	console.log(rootNode)
+	console.log(nodes)
+	return rootNode;
 }
 buildBVH()
 
+// console.log(nodes)
+// const t0 = performance.now();
+// for(let i = 0; i < 1000; ++i)
+// 	buildBVH();
+// const t1 = performance.now();
+// console.log("time x1000 = ", t1 - t0);
+// console.log("time x1= ", (t1 - t0)/1000);
+
+
 
 /// update bvh
-bunny.foreach(face, fd => {
-	const fid = bunny.cell(face, fd);
+mesh.foreach(face, fd => {
+	const fid = mesh.cell(face, fd);
 	
 	const bb = faceBB[fid];
 
-	// const vid0 = bunny.cell(vertex, fd);
-	// const vid1 = bunny.cell(vertex, bunny.phi1[fd]);
-	// const vid2 = bunny.cell(vertex, bunny.phi_1[fd]);
+	// const vid0 = mesh.cell(vertex, fd);
+	// const vid1 = mesh.cell(vertex, mesh.phi1[fd]);
+	// const vid2 = mesh.cell(vertex, mesh.phi_1[fd]);
 
 	bb.setFromPoints([
-		position[bunny.cell(vertex, fd)],
-		position[bunny.cell(vertex, bunny.phi1[fd])],
-		position[bunny.cell(vertex, bunny.phi_1[fd])],
+		position[mesh.cell(vertex, fd)],
+		position[mesh.cell(vertex, mesh.phi1[fd])],
+		position[mesh.cell(vertex, mesh.phi_1[fd])],
 	]);
 
 
@@ -522,37 +531,39 @@ bunny.foreach(face, fd => {
 
 // }
 
-// const BVH = buildBvhBoundary(bunny);
+// const BVH = buildBvhBoundary(mesh);
+
+
+function findClosestTriangle(vd) {
+	// const vid = 
+}
 
 
 
 
+meshRenderer.edges.update()
+meshRenderer.volumes.update()
 
+mesh.foreach(edge, ed => {
+	const p0 = position[mesh.cell(vertex, ed)];
+	const p1 = position[mesh.cell(vertex, mesh.phi2[ed])];
 
-
-bunnyRenderer.edges.update()
-bunnyRenderer.volumes.update()
-
-bunny.foreach(edge, ed => {
-	const p0 = position[bunny.cell(vertex, ed)];
-	const p1 = position[bunny.cell(vertex, bunny.phi2[ed])];
-
-	edgeRestLength[bunny.cell(edge, ed)] = p0.distanceTo(p1);
+	edgeRestLength[mesh.cell(edge, ed)] = p0.distanceTo(p1);
 
 });
 
-bunny.foreach(volume, wd => {
-	const p0 = position[bunny.cell(vertex, wd)];
-	const p1 = position[bunny.cell(vertex, bunny.phi_1[wd])];
-	const p2 = position[bunny.cell(vertex, bunny.phi1[wd])];
-	const p3 = position[bunny.cell(vertex, bunny.phi([2, -1], wd))];
+mesh.foreach(volume, wd => {
+	const p0 = position[mesh.cell(vertex, wd)];
+	const p1 = position[mesh.cell(vertex, mesh.phi_1[wd])];
+	const p2 = position[mesh.cell(vertex, mesh.phi1[wd])];
+	const p3 = position[mesh.cell(vertex, mesh.phi([2, -1], wd))];
 	const vol = computeTetVolume(p0, p1, p2, p3);
-	tetRestVolume[bunny.cell(volume, wd)] = vol;
+	tetRestVolume[mesh.cell(volume, wd)] = vol;
 	const invM = vol > 0.0 ? 1.0/(vol / 4.0) : 0.0;
-	invMass[bunny.cell(vertex, wd)] += invM;
-	invMass[bunny.cell(vertex, bunny.phi_1[wd])] += invM;
-	invMass[bunny.cell(vertex, bunny.phi1[wd])] += invM;
-	invMass[bunny.cell(vertex, bunny.phi([2, -1], wd))] += invM;
+	invMass[mesh.cell(vertex, wd)] += invM;
+	invMass[mesh.cell(vertex, mesh.phi_1[wd])] += invM;
+	invMass[mesh.cell(vertex, mesh.phi1[wd])] += invM;
+	invMass[mesh.cell(vertex, mesh.phi([2, -1], wd))] += invM;
 
 }, {useEmb: false});
 
@@ -560,21 +571,21 @@ bunny.foreach(volume, wd => {
 const gravity = new THREE.Vector3(0, -10, 0);
 
 // function computeEdgeLengths() {
-// 	bunny.foreach(bunny.edge, ed => {
-// 		const p0 = position[bunny.cell(vertex, ed)];
-// 		const p1 = position[bunny.cell(vertex, bunny.phi2[ed])];
+// 	mesh.foreach(mesh.edge, ed => {
+// 		const p0 = position[mesh.cell(vertex, ed)];
+// 		const p1 = position[mesh.cell(vertex, mesh.phi2[ed])];
 	
-// 		edgeLength[bunny.cell(bunny.edge, ed)] = p0.distanceTo(p1);
+// 		edgeLength[mesh.cell(mesh.edge, ed)] = p0.distanceTo(p1);
 // 	});
 // }
 
 // function computeVolumes() {
-// 	bunny.foreach(bunny.volume, wd => {
-// 		const p0 = position[bunny.cell(vertex, wd)];
-// 		const p1 = position[bunny.cell(vertex, bunny.phi_1[wd])];
-// 		const p2 = position[bunny.cell(vertex, bunny.phi1[wd])];
-// 		const p3 = position[bunny.cell(vertex, bunny.phi([2, -1], wd))];
-// 		tetRestVolume[bunny.cell(vertex, wd)] = computeTetVolume(p0, p1, p2, p3)
+// 	mesh.foreach(mesh.volume, wd => {
+// 		const p0 = position[mesh.cell(vertex, wd)];
+// 		const p1 = position[mesh.cell(vertex, mesh.phi_1[wd])];
+// 		const p2 = position[mesh.cell(vertex, mesh.phi1[wd])];
+// 		const p3 = position[mesh.cell(vertex, mesh.phi([2, -1], wd))];
+// 		tetRestVolume[mesh.cell(vertex, wd)] = computeTetVolume(p0, p1, p2, p3)
 // 	});
 // }
 
@@ -644,8 +655,8 @@ function preSolve(dt) {
 	const deltaP = new THREE.Vector3;
 	const tangent = new THREE.Vector3;
 
-	bunny.foreach(vertex, vd => {
-		const vid = bunny.cell(vertex, vd);
+	mesh.foreach(vertex, vd => {
+		const vid = mesh.cell(vertex, vd);
 
 		if(invMass[vid] == 0.0)
 			return false;
@@ -671,10 +682,10 @@ function solveEdges(compliance, dt) {
 
 	const grad = new THREE.Vector3;
 
-	bunny.foreach(edge, ed => {
-		const eid = bunny.cell(edge, ed);
-		const vid0 = bunny.cell(vertex, ed);
-		const vid1 = bunny.cell(vertex, bunny.phi2[ed]);
+	mesh.foreach(edge, ed => {
+		const eid = mesh.cell(edge, ed);
+		const vid0 = mesh.cell(vertex, ed);
+		const vid1 = mesh.cell(vertex, mesh.phi2[ed]);
 
 		const w0 = invMass[vid0];
 		const w1 = invMass[vid1];
@@ -703,13 +714,13 @@ function solveVolumes(compliance, dt) {
 	const g1 = new THREE.Vector3;
 	const g2 = new THREE.Vector3;
 	const g3 = new THREE.Vector3;
-	bunny.foreach(volume, wd => {
-		const wid = bunny.cell(volume, wd);
+	mesh.foreach(volume, wd => {
+		const wid = mesh.cell(volume, wd);
 
-		const vid0 = bunny.cell(vertex, wd);
-		const vid1 = bunny.cell(vertex, bunny.phi_1[wd]);
-		const vid2 = bunny.cell(vertex, bunny.phi1[wd]);
-		const vid3 = bunny.cell(vertex, bunny.phi_1[bunny.phi2[wd]]);
+		const vid0 = mesh.cell(vertex, wd);
+		const vid1 = mesh.cell(vertex, mesh.phi_1[wd]);
+		const vid2 = mesh.cell(vertex, mesh.phi1[wd]);
+		const vid3 = mesh.cell(vertex, mesh.phi_1[mesh.phi2[wd]]);
 
 		const p0 = position[vid0];
 		const p1 = position[vid1];
@@ -750,10 +761,10 @@ let first = true;
 function closestTriangle(vid) {
 	const P = position[vid];
 	const triangles = [];
-	bunny.foreach(face, fd => {
-		const vidA = bunny.cell(vertex, fd);
-		const vidB = bunny.cell(vertex, bunny.phi1[fd]);
-		const vidC = bunny.cell(vertex, bunny.phi_1[fd]);
+	mesh.foreach(face, fd => {
+		const vidA = mesh.cell(vertex, fd);
+		const vidB = mesh.cell(vertex, mesh.phi1[fd]);
+		const vidC = mesh.cell(vertex, mesh.phi_1[fd]);
 
 		if(vidA == vid || vidB == vid || vidC == vid)
 			return;
@@ -770,9 +781,9 @@ function closestTriangle(vid) {
 
 
 	const fd = triangles[0].fd
-	const vidA = bunny.cell(vertex, fd);
-	const vidB = bunny.cell(vertex, bunny.phi1[fd]);
-	const vidC = bunny.cell(vertex, bunny.phi_1[fd]);
+	const vidA = mesh.cell(vertex, fd);
+	const vidB = mesh.cell(vertex, mesh.phi1[fd]);
+	const vidC = mesh.cell(vertex, mesh.phi_1[fd]);
 
 	const A = position[vidA];
 	const B = position[vidB];
@@ -795,10 +806,10 @@ function closestTriangle(vid) {
 function closestTriangleTest(P) {
 	// const P = position[vid];
 	const triangles = [];
-	bunny.foreach(face, fd => {
-		const vidA = bunny.cell(vertex, fd);
-		const vidB = bunny.cell(vertex, bunny.phi1[fd]);
-		const vidC = bunny.cell(vertex, bunny.phi_1[fd]);
+	mesh.foreach(face, fd => {
+		const vidA = mesh.cell(vertex, fd);
+		const vidB = mesh.cell(vertex, mesh.phi1[fd]);
+		const vidC = mesh.cell(vertex, mesh.phi_1[fd]);
 
 		// if(vidA == vid || vidB == vid || vidC == vid)
 		// 	return;
@@ -815,9 +826,9 @@ function closestTriangleTest(P) {
 
 
 	const fd = triangles[0].fd
-	const vidA = bunny.cell(vertex, fd);
-	const vidB = bunny.cell(vertex, bunny.phi1[fd]);
-	const vidC = bunny.cell(vertex, bunny.phi_1[fd]);
+	const vidA = mesh.cell(vertex, fd);
+	const vidB = mesh.cell(vertex, mesh.phi1[fd]);
+	const vidC = mesh.cell(vertex, mesh.phi_1[fd]);
 
 	const A = position[vidA];
 	const B = position[vidB];
@@ -847,9 +858,9 @@ function solveCollisions(compliance, dt) {
 	const vP = new THREE.Vector3;
 
 
-	bunny.foreach(vertex, vd => {
+	mesh.foreach(vertex, vd => {
 		// console.log(vd);
-		const vid = bunny.cell(vertex, vd);
+		const vid = mesh.cell(vertex, vd);
 		const triangle = closestTriangle(vid);
 
 		if(triangle.d > 0)
@@ -858,9 +869,9 @@ function solveCollisions(compliance, dt) {
 		if(triangle.bary.x < 0 || triangle.bary.y < 0 || triangle.bary.z < 0)
 			return;
 
-		const vidA = bunny.cell(vertex, triangle.fd);
-		const vidB = bunny.cell(vertex, bunny.phi1[triangle.fd]);
-		const vidC = bunny.cell(vertex, bunny.phi_1[triangle.fd]);
+		const vidA = mesh.cell(vertex, triangle.fd);
+		const vidB = mesh.cell(vertex, mesh.phi1[triangle.fd]);
+		const vidC = mesh.cell(vertex, mesh.phi_1[triangle.fd]);
 		
 		const N = triangleNormal(position[vidA], position[vidB], position[vidC]);
 
@@ -899,8 +910,8 @@ function solve(dt, volumeCompliance, edgeCompliance) {
 }
 
 function postSolve(dt) {
-	bunny.foreach(vertex, vd => {
-		const vid = bunny.cell(vertex, vd);
+	mesh.foreach(vertex, vd => {
+		const vid = mesh.cell(vertex, vd);
 
 		if(invMass[vid] == 0.0)
 			return false;
@@ -947,7 +958,7 @@ const defaultKeyUp = function(event){
 		case "KeyL":
 			break;
 		case "Numpad0":
-			if(bbId < nodes.length){
+			if(bbId < nodes.length - 1){
 				++bbId;
 				bb.copy(nodes[bbId].bb);
 				console.log(nodes[bbId].primitives)
@@ -1009,9 +1020,9 @@ const settings = {
 	updateDisplay : function () {
 
 
-		// bunnyRenderer.vertices.update();
-		bunnyRenderer.edges.update();
-		// bunnyRenderer.volumes.update();
+		// meshRenderer.vertices.update();
+		meshRenderer.edges.update();
+		// meshRenderer.volumes.update();
 		// sphereMarker.
 	},
 
@@ -1021,12 +1032,12 @@ const settings = {
 		closestTriangleTest(testPos[vP])
 		console.log(barycentricCoordinates(A, B, C,testPos[vP] ))
 
-		// bunnyRenderer.edges.update();
+		// meshRenderer.edges.update();
 		// testRenderer.vertices.update();
 		// testRenderer.edges.update();
 		// testRenderer.faces.update();
 
-		// bunnyRenderer.volumes.update();
+		// meshRenderer.volumes.update();
 
 	},
 
@@ -1052,12 +1063,14 @@ const settings = {
 			this.updateDisplay();
 			this.disp = 0;
 		}
+
+		buildBVH();
 	},
 
 	reset: function() {
-		bunny.foreach(vertex, vd => {
-			position[bunny.cell(vertex, vd)].copy(positionInit[bunny.cell(vertex, vd)]);
-			velocity[bunny.cell(vertex, vd)].set(0, 0, 0);
+		mesh.foreach(vertex, vd => {
+			position[mesh.cell(vertex, vd)].copy(positionInit[mesh.cell(vertex, vd)]);
+			velocity[mesh.cell(vertex, vd)].set(0, 0, 0);
 		}, {useEmb: true});
 
 		this.updateDisplay();
