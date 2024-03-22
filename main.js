@@ -61,30 +61,16 @@ const A = new THREE.Vector3(Math.sqrt(3)/2, 1, -0.5)
 const B = new THREE.Vector3(-Math.sqrt(3)/2, 1, -0.5);
 const C = new THREE.Vector3(0, 1, 1)
 const P = new THREE.Vector3(0.25, 3, 1.075);
-const P3 = new THREE.Vector3(1.5, 3, -1.5);
-// const P = new THREE.Vector3(-1, 3, -1.);
 
 const testGraph = new IncidenceGraph;
 testGraph.createEmbedding(testGraph.vertex);
 const testPos = testGraph.addAttribute(testGraph.vertex, "position");
 const testPrevPos = testGraph.addAttribute(testGraph.vertex, "previousPosition");
 const testVel = testGraph.addAttribute(testGraph.vertex, "velocity");
-const vA = testGraph.addVertex()
-testPos[vA] = A
-const vB = testGraph.addVertex()
-testPos[vB] = B
-const vC = testGraph.addVertex()
-testPos[vC] = C
+
 
 const vP = testGraph.addVertex()
 testPos[vP] = P
-
-const eAB = testGraph.addEdge(vA, vB)
-const eAP = testGraph.addEdge(vA, vP)
-const eAC = testGraph.addEdge(vA, vC)
-const eBC = testGraph.addEdge(vC, vB)
-
-const fABC = testGraph.addFace(eAB, eAC, eBC);
 
 
 
@@ -106,34 +92,8 @@ const sphereMarker3= new THREE.Mesh(
 )
 scene.add(sphereMarker3)
 
-testVel[vA] = new THREE.Vector3
-testVel[vB] = new THREE.Vector3
-testVel[vC] = new THREE.Vector3
-testVel[vP] = new THREE.Vector3
-
-testPrevPos[vA] = testPos[vA].clone()
-testPrevPos[vB] = testPos[vB].clone()
-testPrevPos[vC] = testPos[vC].clone()
 testPrevPos[vP] = testPos[vP].clone()
-// const AP = P.clone().sub(A);
-// const AB = B.clone().sub(A);
-// const AC = C.clone().sub(A);
-// const N = AB.clone().cross(AC).normalize();
 
-// const P2 = P.clone().addScaledVector(N, -AP.dot(N));
-const vP2 = testGraph.addVertex()
-const vP3 = testGraph.addVertex()
-testPos[vP3] = P3
-
-
-
-// const PA = A.clone().addScaledVector(AB, AB.dot(AP) /AB.dot(AB));
-// const vPA = testGraph.addVertex()
-// testPos[vPA] = PA
-
-// const PB = A.clone().addScaledVector(AC, AC.dot(AP) /AC.dot(AC));
-// const vPB = testGraph.addVertex()
-// testPos[vPB] = PB
 
 
 
@@ -165,7 +125,6 @@ function projectionOnTriangle(A, B, C, P) {
 	return P2;
 }
 
-testPos[vP2] = projectionOnTriangle(A, B, C, P);
 
 function triangleNormal(A, B, C) {
 	return B.clone().sub(A).cross(C.clone().sub(A)).normalize();
@@ -208,34 +167,11 @@ function closestPointOnTriangle(A, B, C, P) {
 	return A.clone().multiplyScalar(bary.x).addScaledVector(B, bary.y).addScaledVector(C, bary.z);
 }
 
-// console.log(barycentricCoordinates(A, B, C, P))
-
-// signedDistanceToTriangle(A, B, C, P);
-
-
-// testPos[vP3].copy(closestPointOnTriangle(A, B, C, P))
-
-
-
-
-
 
 
 
 const testRenderer = new Renderer(testGraph);
-// testRenderer.vertices.create({size: 0.05}).addTo(scene);
-// testRenderer.edges.create({size: 2}).addTo(scene);
-// testRenderer.faces.create({transparent: true, opacity: 0.5, side: THREE.DoubleSide}).addTo(scene);
-
-
-
-
-
-
-
-
-// console.log(bary)
-// testPos[vP2].set(0, 0, 0).addScaledVector(A, bary.x).addScaledVector(B, bary.y).addScaledVector(C, bary.z)
+testRenderer.vertices.create({size: 0.05}).addTo(scene);
 
 const stats = new Stats()
 document.body.appendChild( stats.dom );
@@ -243,28 +179,7 @@ document.body.appendChild( stats.dom );
  
 
 const geometry = loadTet(ballTet);
-// console.log(geometry);
 
-// const geometry2 = {v: [], tet: []};
-
-// geometry.v.forEach(v => {
-// 	geometry2.v.push([...v]);
-// })
-// geometry.v.forEach(v => {
-// 	geometry2.v.push([v[0], v[1] + 1, v[2]]);
-// })
-
-
-// geometry.tet.forEach(v => {
-// 	geometry2.tet.push([v[0], v[1], v[2], v[3]]);
-// })
-// geometry.tet.forEach(v => {
-// 	geometry2.tet.push([v[0] + 26, v[1] + 26, v[2] + 26, v[3] + 26]);
-// })
-
-
-// console.log(geometry2);
-// console.log(exportTet(geometry2))
 
 const mesh = mapFromGeometry(geometry)
 
@@ -288,9 +203,7 @@ mesh.setEmbeddings(face);
 
 mesh.createEmbedding(volume);
 mesh.setEmbeddings(volume);
-// mesh.foreach(volume, wd => {
-// 	console.log(mesh.cell(volume, wd));
-// })
+
 
 const position = mesh.getAttribute(vertex, "position");
 const positionInit = mesh.addAttribute(vertex, "positionInit");
@@ -303,22 +216,9 @@ const edgeRestLength = mesh.addAttribute(edge, "edgeRestLength");
 const tetVolume = mesh.addAttribute(volume, "tetVolume");
 const tetRestVolume = mesh.addAttribute(volume, "tetRestVolume");
 
-
-// const boundaryGraph = new IncidenceGraph
-// boundaryGraph.createEmbedding(vertex);
-
-// const positionGraph = boundaryGraph.addAttribute(boundaryGraph.vertex, "position");
-
 const vertexBoundaryCache = []
 const faceBoundaryCache = []
 const volumeBoundaryCache = []
-// mesh.foreach(vertex, vd => {
-// 	if(mesh.isBoundaryCell(vertex, vd))
-// 		vertexBoundaryCache.push(vd);
-
-
-	
-// });
 
 mesh.foreach(volume, wd => {
 	if(mesh.isBoundary(wd))
@@ -362,8 +262,6 @@ mesh.foreachIncident(vertex, volume, volumeBoundaryCache[1], vd => {
 });
 
 
-// const graphRenderer = new Renderer(boundaryGraph)
-// graphRenderer.vertices.create().addTo(scene)
 
 /// initialization
 mesh.foreach(vertex, vd => {
@@ -449,14 +347,40 @@ function splitNode(node) {
 }
 
 
-const primitives = [];
-mesh.foreach(face, fd => {
-	const fid = mesh.cell(face, fd);
-	primitives.push(makePrimitive(fd, faceBB[fid]));
+const primitives = new Array();
+function initPrimitives() {
+	primitives.length = faceBoundaryCache.length
+	let nbf = 0
+	mesh.foreach(face, fd => {
+		const fid = mesh.cell(face, fd);
+		primitives[nbf++] = (makePrimitive(fd, faceBB[fid]));
+		
+	}, {cache: faceBoundaryCache});
+}
 
-}, {cache: faceBoundaryCache});
 
 
+function updatePrimitives() {
+	primitives.forEach(prim => {
+		const fd = prim.fd;
+		// const fid = mesh.cell(face, fd);
+		prim.bb.setFromPoints([
+			position[mesh.cell(vertex, fd)],
+			position[mesh.cell(vertex, mesh.phi1[fd])],
+			position[mesh.cell(vertex, mesh.phi_1[fd])],
+		]);
+	});
+}
+
+initPrimitives()
+console.log(primitives)
+
+mesh.foreach(vertex, vd => {
+	position[mesh.cell(vertex, vd)].y += -0.25;
+}, {useEmb: true});
+updatePrimitives()
+
+let BVH;
 
 const expansion = 0.05;
 const splitCriteria = 5;
@@ -494,48 +418,60 @@ function buildBVH() {
 	console.log(nodes)
 	return rootNode;
 }
-buildBVH()
-
-// console.log(nodes)
-// const t0 = performance.now();
-// for(let i = 0; i < 1000; ++i)
-// 	buildBVH();
-// const t1 = performance.now();
-// console.log("time x1000 = ", t1 - t0);
-// console.log("time x1= ", (t1 - t0)/1000);
-
-
-
-/// update bvh
-mesh.foreach(face, fd => {
-	const fid = mesh.cell(face, fd);
-	
-	const bb = faceBB[fid];
-
-	// const vid0 = mesh.cell(vertex, fd);
-	// const vid1 = mesh.cell(vertex, mesh.phi1[fd]);
-	// const vid2 = mesh.cell(vertex, mesh.phi_1[fd]);
-
-	bb.setFromPoints([
-		position[mesh.cell(vertex, fd)],
-		position[mesh.cell(vertex, mesh.phi1[fd])],
-		position[mesh.cell(vertex, mesh.phi_1[fd])],
-	]);
-
-
-}, {cache: faceBoundaryCache})
-
-// function buildBvhBoundary(mesh) {
-// 	const vertex = mesh.vertex;
-
-
-// }
-
-// const BVH = buildBvhBoundary(mesh);
+BVH = buildBVH()
+console.log(BVH)
 
 
 function findClosestTriangle(vd) {
-	// const vid = 
+	// const vid = mesh.cell(vertex, vd);
+	// const vpos = position[vid];
+	const vpos = testPos[vP];
+
+	const incidentTriangles = {}
+	// mesh.foreachIncident(face, vertex, vd, fd => {
+	// 	incidentTriangles[mesh.cell(face, fd)] = true;
+	// });
+
+	let nearbyTriangles = [];
+
+	const stack = [BVH];
+
+	while(stack.length) {
+		console.log(stack)
+		const node = stack.shift();
+		if(node.bb.containsPoint(vpos)) {
+			if(nodes.primitives) {
+				nearbyTriangles.push(...primitives);
+			}
+			else {
+				stack.push(...node.children);
+			}
+		}
+	}
+
+	// nearbyTriangles = nearbyTriangles.filter(prim => {
+	// 	return incidentTriangles[mesh.cell(face, prim.fd)];
+	// });
+	console.log(nearbyTriangles)
+
+	nearbyTriangles = nearbyTriangles.map(prim => {
+		const P2 = closestPointOnTriangle(
+			position[mesh.cell(vertex, fd)], 
+			position[mesh.cell(vertex, mesh.phi1[fd])], 
+			position[mesh.cell(vertex, mesh.phi_1[fd])], 
+			vpos
+		);
+		return {fd: prim.fd, d: P2.distanceTo(P)};
+	});
+
+	nearbyTriangles.sort((t0, t1) => {
+		return t0.d - t1.d;
+	});
+
+	console.log(nearbyTriangles)
+
+	// sphereMarker.position.copy(closestPointOnTriangle(A, B, C, P))
+	// sphereMarker2.position.copy(projectionOnTriangle(A, B, C, P))
 }
 
 
@@ -569,46 +505,6 @@ mesh.foreach(volume, wd => {
 
 
 const gravity = new THREE.Vector3(0, -10, 0);
-
-// function computeEdgeLengths() {
-// 	mesh.foreach(mesh.edge, ed => {
-// 		const p0 = position[mesh.cell(vertex, ed)];
-// 		const p1 = position[mesh.cell(vertex, mesh.phi2[ed])];
-	
-// 		edgeLength[mesh.cell(mesh.edge, ed)] = p0.distanceTo(p1);
-// 	});
-// }
-
-// function computeVolumes() {
-// 	mesh.foreach(mesh.volume, wd => {
-// 		const p0 = position[mesh.cell(vertex, wd)];
-// 		const p1 = position[mesh.cell(vertex, mesh.phi_1[wd])];
-// 		const p2 = position[mesh.cell(vertex, mesh.phi1[wd])];
-// 		const p3 = position[mesh.cell(vertex, mesh.phi([2, -1], wd))];
-// 		tetRestVolume[mesh.cell(vertex, wd)] = computeTetVolume(p0, p1, p2, p3)
-// 	});
-// }
-
-
-function preSolveTest(dt) {
-	const P = testPos[vP];
-
-	testVel[vP].addScaledVector(gravity, dt);
-	testPrevPos[vP].copy(testPos[vP]);
-	testPos[vP].addScaledVector(testVel[vP], dt);
-
-	testPrevPos[vA].copy(testPos[vA]);
-	testPos[vA].addScaledVector(testVel[vA], dt);
-	testPrevPos[vB].copy(testPos[vB]);
-	testPos[vB].addScaledVector(testVel[vB], dt);
-	testPrevPos[vC].copy(testPos[vC]);
-	testPos[vC].addScaledVector(testVel[vC], dt);
-
-	// if(testPos[vP].y < 0.0) {
-	// 	testPos[vP].copy(testPrevPos[vP]);
-	// 	testPos[vP].y = 0.0;
-	// }
-}	
 
 
 function solveTriangle(compliance = 0, dt) {
@@ -794,11 +690,11 @@ function closestTriangle(vid) {
 	triangles[0].d = signedDistanceToTriangle(A, B, C, P);
 	triangles[0].bary = barycentricCoordinates(A, B, C, P);
 
-	if(vid == 3) {
-		sphereMarker.position.copy(closestPointOnTriangle(A, B, C, P))
-		sphereMarker2.position.copy(projectionOnTriangle(A, B, C, P))
-		sphereMarker3.position.copy(P)
-	}
+	// if(vid == 3) {
+	// 	sphereMarker.position.copy(closestPointOnTriangle(A, B, C, P))
+	// 	sphereMarker2.position.copy(projectionOnTriangle(A, B, C, P))
+	// 	sphereMarker3.position.copy(P)
+	// }
 
 	return triangles[0];
 }
@@ -837,13 +733,8 @@ function closestTriangleTest(P) {
 
 
 	triangles[0].d = signedDistanceToTriangle(A, B, C, P);
-	// if(vid == 2) {
-	// 	first = false;
-	// 	console.log(triangles[0])
 	sphereMarker.position.copy(closestPointOnTriangle(A, B, C, P))
-	// 	console.log(barycentricCoordinates(A, B, C, P))
 	sphereMarker2.position.copy(projectionOnTriangle(A, B, C, P))
-	// }
 
 	return triangles[0];
 }
@@ -1030,10 +921,12 @@ const settings = {
 		// testPos[vP2] = projectionOnTriangle(A, B, C, testPos[vP]);
 		// testPos[vP3] = closestPointOnTriangle(A, B, C, testPos[vP]);
 		closestTriangleTest(testPos[vP])
+		findClosestTriangle()
+
 		console.log(barycentricCoordinates(A, B, C,testPos[vP] ))
 
 		// meshRenderer.edges.update();
-		// testRenderer.vertices.update();
+		testRenderer.vertices.update();
 		// testRenderer.edges.update();
 		// testRenderer.faces.update();
 
@@ -1057,6 +950,8 @@ const settings = {
 			preSolve(this.dt);
 			solve(this.dt, this.volumeCompliance, this.edgeCompliance);
 			postSolve(this.dt);
+
+			updatePrimitives()
 		}
 
 		if(this.disp++ == 0) {
@@ -1081,9 +976,9 @@ const settings = {
 const gui = new GUI({autoPlace: true, hideable: false});
 const simulationFolder = gui.addFolder("simulation");
 simulationFolder.open()
-simulationFolder.add(testPos[vP], "x").onChange(settings.updateTest.bind(settings));
-simulationFolder.add(testPos[vP], "y").onChange(settings.updateTest.bind(settings));
-simulationFolder.add(testPos[vP], "z").onChange(settings.updateTest.bind(settings));
+simulationFolder.add(testPos[vP], "x").step(0.01).onChange(settings.updateTest.bind(settings));
+simulationFolder.add(testPos[vP], "y").step(0.01).onChange(settings.updateTest.bind(settings));
+simulationFolder.add(testPos[vP], "z").step(0.01).onChange(settings.updateTest.bind(settings));
 simulationFolder.add(settings, "play");
 simulationFolder.add(settings, "step");
 simulationFolder.add(settings, "reset");
