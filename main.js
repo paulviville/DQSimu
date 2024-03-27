@@ -415,7 +415,7 @@ function buildBVH() {
 		delete node.primitives;
 		
 	}
-	console.log(nodes)
+	// console.log(nodes)
 	return rootNode;
 }
 BVH = buildBVH()
@@ -435,15 +435,17 @@ function findClosestTriangle(vd) {
 	let nearbyTriangles = [];
 
 	const stack = [BVH];
-
+	console.log(BVH)
+	console.log(stack)
 	while(stack.length) {
 		console.log(stack)
 		const node = stack.shift();
 		if(node.bb.containsPoint(vpos)) {
-			if(nodes.primitives) {
+			if(node.primitives) {
 				nearbyTriangles.push(...primitives);
 			}
 			else {
+				console.log(node)
 				stack.push(...node.children);
 			}
 		}
