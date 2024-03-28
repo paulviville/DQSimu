@@ -2032,8 +2032,8 @@ skeleton.computeOffsets();
 const sRenderer = new SkeletonRenderer(skeleton);
 sRenderer.createVertices();
 sRenderer.createEdges();
-scene.add(sRenderer.vertices)
-scene.add(sRenderer.edges)
+// scene.add(sRenderer.vertices)
+// scene.add(sRenderer.edges)
 
 function clamp(val, min, max) {
 	return Math.min(Math.max(val, min), max);
@@ -2087,14 +2087,18 @@ function buildBinds() {
 		const posV = position[vid].clone();
 
 		const proj = projectOnSkeleton(posV);
+		const dir = posV.clone().sub(proj.posB).multiplyScalar(0.2).add(proj.posB);
+
 		console.log(posV, proj);
 		let v = bindGraph.addVertex();
-		bindPosition[v] = proj.posB.clone();
-		bindInitPosition[v] = proj.posB.clone();
+		bindPosition[v] = dir;
+		// bindPosition[v] = proj.posB.clone();
+		bindInitPosition[v] = bindPosition[v].clone();
 		bindBone[v] = proj.bone;
 
 		bindPoints[vid] = v;
-		bindDist[vid] = posV.distanceTo(proj.posB);
+		bindDist[vid] = posV.distanceTo(bindPosition[v]);
+		// bindDist[vid] = posV.distanceTo(proj.posB);
 	});
 	
 	
@@ -2106,6 +2110,9 @@ buildBinds()
 console.log(bindBone, bindPosition, bindDist)
 
 
+const bgRenderer = new Renderer(bindGraph);
+bgRenderer.vertices.create().addTo(scene);
+// scene.add(bgRenderer.vertices)
 
 
 
@@ -2577,6 +2584,7 @@ const settings = {
 	},
 
 	play: false,
+	simulate: false,
 	disp: 0,
 	dt: 0.0018,
 	volumeCompliance: 0,
@@ -2614,7 +2622,10 @@ const settings = {
 			bindPosition[v].copy(pdq.transform(new THREE.Vector3));
 
 		});
+		bgRenderer.vertices.update();
+	
 	},
+
 
 	stepSkin: function(t) {
 		bunny.foreach(vertex, vd => {
@@ -2651,6 +2662,7 @@ const gui = new GUI({autoPlace: true, hideable: false});
 const simulationFolder = gui.addFolder("simulation");
 simulationFolder.open()
 simulationFolder.add(settings, "play");
+simulationFolder.add(settings, "simulate");
 simulationFolder.add(settings, "step");
 simulationFolder.add(settings, "reset");
 simulationFolder.add(settings, "volumeCompliance").min(0).max(10000).step(1); 
@@ -2669,6 +2681,9 @@ function update (t)
 		settings.stepSkeleton(time / 2);
 		settings.stepBind();
 		// settings.stepSkin(time);
+		settings.step();
+	}
+	if(settings.play || settings.simulate) {
 		settings.step();
 	}
 	t_1 = t;
